@@ -1,24 +1,17 @@
 import java.io.IOException;
-import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
 import com.fimtra.infra.channel.EndPointAddress;
 import com.fimtra.infra.channel.StaticEndPointAddressFactory;
-import com.fimtra.infra.datafission.IObserverContext;
+import com.fimtra.infra.datafission.ICodec;
 import com.fimtra.infra.datafission.IRecord;
 import com.fimtra.infra.datafission.IRecordChange;
 import com.fimtra.infra.datafission.IRecordListener;
-import com.fimtra.infra.datafission.IObserverContext.ISystemRecordNames;
-import com.fimtra.infra.datafission.IRpcInstance.ExecutionException;
 import com.fimtra.infra.datafission.IRpcInstance.TimeOutException;
-import com.fimtra.infra.datafission.core.Context;
 import com.fimtra.infra.datafission.core.ContextUtils;
+import com.fimtra.infra.datafission.core.HybridProtocolCodec;
 import com.fimtra.infra.datafission.core.ProxyContext;
-import com.fimtra.infra.datafission.core.Publisher;
-import com.fimtra.infra.datafission.core.StringProtocolCodec;
-import com.fimtra.infra.datafission.field.DoubleValue;
 import com.fimtra.infra.datafission.field.LongValue;
-import com.fimtra.infra.datafission.field.TextValue;
 import com.fimtra.infra.tcpchannel.TcpChannelBuilderFactory;
 import com.fimtra.infra.tcpchannel.TcpChannelUtils;
 
@@ -39,7 +32,7 @@ public class BenchmarkSubscriber
 
     public static void main(String[] args) throws IOException, InterruptedException, TimeOutException
     {
-        final StringProtocolCodec proxyCodec = new StringProtocolCodec();
+        final ICodec proxyCodec = new HybridProtocolCodec();
         final TcpChannelBuilderFactory channelBuilderFactory =
             new TcpChannelBuilderFactory(proxyCodec.getFrameEncodingFormat(), new StaticEndPointAddressFactory(
                 new EndPointAddress(TcpChannelUtils.LOCALHOST_IP, 22222)));

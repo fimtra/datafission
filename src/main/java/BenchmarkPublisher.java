@@ -5,22 +5,23 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.fimtra.infra.datafission.IObserverContext.ISystemRecordNames;
-import com.fimtra.infra.datafission.IRpcInstance.ExecutionException;
-import com.fimtra.infra.datafission.IRpcInstance.TimeOutException;
 import com.fimtra.infra.datafission.IRecord;
 import com.fimtra.infra.datafission.IRecordChange;
 import com.fimtra.infra.datafission.IRecordListener;
+import com.fimtra.infra.datafission.IRpcInstance.ExecutionException;
+import com.fimtra.infra.datafission.IRpcInstance.TimeOutException;
 import com.fimtra.infra.datafission.IValue;
 import com.fimtra.infra.datafission.IValue.TypeEnum;
 import com.fimtra.infra.datafission.core.Context;
+import com.fimtra.infra.datafission.core.HybridProtocolCodec;
 import com.fimtra.infra.datafission.core.Publisher;
 import com.fimtra.infra.datafission.core.RpcInstance;
 import com.fimtra.infra.datafission.core.RpcInstance.IRpcExecutionHandler;
-import com.fimtra.infra.datafission.core.StringProtocolCodec;
 import com.fimtra.infra.datafission.field.DoubleValue;
 import com.fimtra.infra.datafission.field.LongValue;
 import com.fimtra.infra.datafission.field.TextValue;
 import com.fimtra.infra.tcpchannel.TcpChannelUtils;
+import com.fimtra.infra.util.SystemUtils;
 
 /*
  * Copyright (c) 2015 Ramon Servadei, Fimtra
@@ -42,7 +43,7 @@ public class BenchmarkPublisher
         Context context = new Context("BenchmarkPublisher");
 
         // enable remote access to the context, this opens a TCP server socket on localhost:222222
-        Publisher publisher = new Publisher(context, new StringProtocolCodec(), TcpChannelUtils.LOCALHOST_IP, 22222);
+        Publisher publisher = new Publisher(context, new HybridProtocolCodec(), TcpChannelUtils.LOCALHOST_IP, 22222);
 
         final AtomicLong runTimerEnd = new AtomicLong();
         final AtomicReference<CountDownLatch> runLatch = new AtomicReference<CountDownLatch>();
@@ -75,29 +76,51 @@ public class BenchmarkPublisher
             }
         }, ISystemRecordNames.CONTEXT_SUBSCRIPTIONS);
 
-        System.err.println("Waiting for subscriber...");
+        System.err.print("Waiting for subscriber...");
         start.await();
-        System.err.println("Subscriber available...");
+        System.err.println("done");
 
-        final int maxUpdates = 1000;
+        // warmup
+        doTest(context, runLatch);
+
+        StringBuilder results = doTest(context, runLatch);
+
+        results.append("CPU count: " + Runtime.getRuntime().availableProcessors()).append(SystemUtils.lineSeparator());
+        results.append("JVM version: " + System.getProperty("java.version")).append(SystemUtils.lineSeparator());
+        System.err.println(results);
+
+        System.err.println("Finished");
+        System.in.read();
+    }
+
+    static StringBuilder doTest(Context context, final AtomicReference<CountDownLatch> runLatch)
+        throws InterruptedException
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Concurrent record count, avg latency (uSec)").append(SystemUtils.lineSeparator());
+
+        IRecord record;
+        final int maxUpdates = 10000;
         final int maxRecordCount = 32;
         final Random rnd = new Random();
-        long runStartNanos, runLatencyNanos, publishCount;
-        for (int recordCount = 1; recordCount < maxRecordCount; recordCount++)
+        long runStartNanos, runLatencyMicros, publishCount;
+        int maxUpdatesForRecordCount;
+        for (int recordCount = 1; recordCount <= maxRecordCount; recordCount++)
         {
-            System.err.println("Updating " + recordCount + " concurrent records...");
+            maxUpdatesForRecordCount = (int) ((double) maxUpdates / recordCount);
+            System.err.print("Updating " + recordCount + " concurrent records, total update count per record will be "
+                + maxUpdatesForRecordCount + "...");
             runLatch.set(new CountDownLatch(1));
             publishCount = 0;
             runStartNanos = System.nanoTime();
-            for (int updateNumber = 1; updateNumber <= maxUpdates; updateNumber++)
+            for (int updateNumber = 1; updateNumber <= maxUpdatesForRecordCount; updateNumber++)
             {
-                // get each record and update
-                for (int k = 0; k < recordCount; k++)
+                // get each record and update - go backwards so the 0th one is always the last one
+                for (int k = recordCount - 1; k > -1; k--)
                 {
                     record = context.getOrCreateRecord("BenchmarkRecord-" + k);
-                    record.put("maxRecordCount", LongValue.valueOf(maxRecordCount));
                     record.put("concurrentRecordCount", LongValue.valueOf(recordCount));
-                    record.put("maxUpdates", LongValue.valueOf(maxUpdates));
+                    record.put("maxUpdates", LongValue.valueOf(maxUpdatesForRecordCount));
                     record.put("updateNumber", LongValue.valueOf(updateNumber));
                     record.put("data1", LongValue.valueOf(rnd.nextLong()));
                     record.put("data2", DoubleValue.valueOf(rnd.nextDouble()));
@@ -108,12 +131,13 @@ public class BenchmarkPublisher
             }
 
             // wait for the subscriber to acknowledge this run
-            System.err.println("Waiting for run to complete...");
+            System.err.print("waiting for run to complete...");
             runLatch.get().await();
-            runLatencyNanos = (System.nanoTime() - runStartNanos) / 1000;
-            System.err.println("For " + recordCount + ", avg latency=" + (runLatencyNanos / (publishCount)));
+            runLatencyMicros = (System.nanoTime() - runStartNanos) / 1000;
+            System.err.println("completed.");
+            sb.append(recordCount).append(",").append((runLatencyMicros / (publishCount))).append(
+                SystemUtils.lineSeparator());
         }
-        System.err.println("Finished");
-        System.in.read();
+        return sb;
     }
 }
