@@ -44,15 +44,15 @@ import com.fimtra.infra.util.SystemUtils;
  */
 public class BenchmarkPublisher
 {
-    public static void main(String[] args) throws IOException, InterruptedException
+    public static void main(String[] args) throws InterruptedException
     {
         // create the context that will hold the record(s)
-        Context context = new Context("BenchmarkPublisher");
+        final Context context = new Context("BenchmarkPublisher");
 
         // enable remote access to the context, this opens a TCP server socket on localhost:222222
-        Publisher publisher =
-            new Publisher(context, new StringProtocolCodec(),
-                args.length == 0 ? TcpChannelUtils.LOCALHOST_IP : args[0], 22222);
+        final Publisher publisher =
+            new Publisher(context, new StringProtocolCodec(), args.length == 0 ? TcpChannelUtils.LOOPBACK : args[0],
+                22222);
 
         final AtomicReference<CountDownLatch> runLatch = new AtomicReference<CountDownLatch>();
 
