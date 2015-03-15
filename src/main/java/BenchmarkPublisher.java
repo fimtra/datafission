@@ -1,7 +1,21 @@
+/*
+ * Copyright (c) 2015 Ramon Servadei 
+ *  
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *    
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.fimtra.infra.datafission.IObserverContext.ISystemRecordNames;
@@ -13,26 +27,19 @@ import com.fimtra.infra.datafission.IRpcInstance.TimeOutException;
 import com.fimtra.infra.datafission.IValue;
 import com.fimtra.infra.datafission.IValue.TypeEnum;
 import com.fimtra.infra.datafission.core.Context;
-import com.fimtra.infra.datafission.core.HybridProtocolCodec;
 import com.fimtra.infra.datafission.core.Publisher;
 import com.fimtra.infra.datafission.core.RpcInstance;
 import com.fimtra.infra.datafission.core.RpcInstance.IRpcExecutionHandler;
+import com.fimtra.infra.datafission.core.StringProtocolCodec;
 import com.fimtra.infra.datafission.field.DoubleValue;
 import com.fimtra.infra.datafission.field.LongValue;
 import com.fimtra.infra.datafission.field.TextValue;
 import com.fimtra.infra.tcpchannel.TcpChannelUtils;
 import com.fimtra.infra.util.SystemUtils;
 
-/*
- * Copyright (c) 2015 Ramon Servadei, Fimtra
- * All rights reserved.
- * 
- * This file is subject to the terms and conditions defined in 
- * file 'LICENSE.txt', which is part of this source code package. 
- * The terms and conditions can also be found at http://fimtra.com/LICENSE.txt.
- */
-
 /**
+ * The publisher for benchmarking. After starting this, start a {@link BenchmarkSubscriber}
+ * 
  * @author Ramon Servadei
  */
 public class BenchmarkPublisher
@@ -43,9 +50,10 @@ public class BenchmarkPublisher
         Context context = new Context("BenchmarkPublisher");
 
         // enable remote access to the context, this opens a TCP server socket on localhost:222222
-        Publisher publisher = new Publisher(context, new HybridProtocolCodec(), TcpChannelUtils.LOCALHOST_IP, 22222);
+        Publisher publisher =
+            new Publisher(context, new StringProtocolCodec(),
+                args.length == 0 ? TcpChannelUtils.LOCALHOST_IP : args[0], 22222);
 
-        final AtomicLong runTimerEnd = new AtomicLong();
         final AtomicReference<CountDownLatch> runLatch = new AtomicReference<CountDownLatch>();
 
         // this RPC is called by the subscriber after each run completes
@@ -54,13 +62,10 @@ public class BenchmarkPublisher
             @Override
             public IValue execute(IValue... args) throws TimeOutException, ExecutionException
             {
-                runTimerEnd.set(args[0].longValue());
                 runLatch.get().countDown();
                 return null;
             }
-        }, TypeEnum.TEXT, "runComplete", TypeEnum.LONG));
-
-        IRecord record = context.getOrCreateRecord("BenchmarkRecord-0");
+        }, TypeEnum.TEXT, "runComplete"));
 
         // wait for subscribers
         final CountDownLatch start = new CountDownLatch(1);
@@ -90,7 +95,6 @@ public class BenchmarkPublisher
         System.err.println(results);
 
         System.err.println("Finished");
-        System.in.read();
     }
 
     static StringBuilder doTest(Context context, final AtomicReference<CountDownLatch> runLatch)
@@ -101,32 +105,33 @@ public class BenchmarkPublisher
 
         IRecord record;
         final int maxUpdates = 10000;
-        final int maxRecordCount = 32;
+        final int maxRecordCount = 64;
         final Random rnd = new Random();
         long runStartNanos, runLatencyMicros, publishCount;
-        int maxUpdatesForRecordCount;
+        int currentRecord = 0;
         for (int recordCount = 1; recordCount <= maxRecordCount; recordCount++)
         {
-            maxUpdatesForRecordCount = (int) ((double) maxUpdates / recordCount);
-            System.err.print("Updating " + recordCount + " concurrent records, total update count per record will be "
-                + maxUpdatesForRecordCount + "...");
+            System.err.print("Updating " + recordCount + " concurrent records...");
             runLatch.set(new CountDownLatch(1));
             publishCount = 0;
             runStartNanos = System.nanoTime();
-            for (int updateNumber = 1; updateNumber <= maxUpdatesForRecordCount; updateNumber++)
+            currentRecord = 0;
+            for (int updateNumber = 1; updateNumber <= maxUpdates; updateNumber++)
             {
                 // get each record and update - go backwards so the 0th one is always the last one
-                for (int k = recordCount - 1; k > -1; k--)
+                record = context.getOrCreateRecord("BenchmarkRecord-" + currentRecord++);
+                record.put("maxRecordCount", LongValue.valueOf(maxRecordCount));
+                record.put("concurrentRecordCount", LongValue.valueOf(recordCount));
+                record.put("maxUpdates", LongValue.valueOf(maxUpdates));
+                record.put("updateNumber", LongValue.valueOf(updateNumber));
+                record.put("data1", LongValue.valueOf(rnd.nextLong()));
+                record.put("data2", DoubleValue.valueOf(rnd.nextDouble()));
+                record.put("data3", TextValue.valueOf("" + rnd.nextLong()));
+                context.publishAtomicChange(record);
+                publishCount++;
+                if (currentRecord > maxRecordCount - 1)
                 {
-                    record = context.getOrCreateRecord("BenchmarkRecord-" + k);
-                    record.put("concurrentRecordCount", LongValue.valueOf(recordCount));
-                    record.put("maxUpdates", LongValue.valueOf(maxUpdatesForRecordCount));
-                    record.put("updateNumber", LongValue.valueOf(updateNumber));
-                    record.put("data1", LongValue.valueOf(rnd.nextLong()));
-                    record.put("data2", DoubleValue.valueOf(rnd.nextDouble()));
-                    record.put("data3", TextValue.valueOf("" + rnd.nextLong()));
-                    context.publishAtomicChange(record);
-                    publishCount++;
+                    currentRecord = 0;
                 }
             }
 
