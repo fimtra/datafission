@@ -16,6 +16,7 @@
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.fimtra.infra.datafission.IObserverContext.ISystemRecordNames;
@@ -85,20 +86,28 @@ public class BenchmarkPublisher
         start.await();
         System.err.println("done");
 
+        AtomicLong allRunsPublishCount = new AtomicLong();
+        AtomicLong allRunsLatencyMicros = new AtomicLong();
         // warmup
-        doTest(context, runLatch);
+        doTest(context, runLatch, allRunsLatencyMicros, allRunsPublishCount);
 
-        StringBuilder results = doTest(context, runLatch);
+        StringBuilder results = doTest(context, runLatch, allRunsLatencyMicros, allRunsPublishCount);
 
+        results.append("Total updates: " + allRunsPublishCount.get()).append(SystemUtils.lineSeparator());
+        results.append("Avg RX latency (usec): " + allRunsLatencyMicros.get() / allRunsPublishCount.get()).append(
+            SystemUtils.lineSeparator());
+        results.append("Avg msg size (bytes): " + publisher.getBytesPublished() / publisher.getMessagesPublished()).append(
+            SystemUtils.lineSeparator());
         results.append("CPU count: " + Runtime.getRuntime().availableProcessors()).append(SystemUtils.lineSeparator());
         results.append("JVM version: " + System.getProperty("java.version")).append(SystemUtils.lineSeparator());
+
         System.err.println(results);
 
         System.err.println("Finished");
     }
 
-    static StringBuilder doTest(Context context, final AtomicReference<CountDownLatch> runLatch)
-        throws InterruptedException
+    static StringBuilder doTest(Context context, final AtomicReference<CountDownLatch> runLatch,
+        AtomicLong allRunsLatencyMicros, AtomicLong allRunsPublishCount) throws InterruptedException
     {
         StringBuilder sb = new StringBuilder();
         sb.append("Concurrent record count, avg latency (uSec)").append(SystemUtils.lineSeparator());
@@ -139,6 +148,8 @@ public class BenchmarkPublisher
             System.err.print("waiting for run to complete...");
             runLatch.get().await();
             runLatencyMicros = (System.nanoTime() - runStartNanos) / 1000;
+            allRunsLatencyMicros.addAndGet(runLatencyMicros);
+            allRunsPublishCount.addAndGet(publishCount);
             System.err.println("completed.");
             sb.append(recordCount).append(",").append((runLatencyMicros / (publishCount))).append(
                 SystemUtils.lineSeparator());
