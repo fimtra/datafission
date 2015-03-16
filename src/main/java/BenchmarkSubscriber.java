@@ -1,37 +1,37 @@
+/*
+ * Copyright (c) 2015 Ramon Servadei 
+ *  
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *    
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import java.io.IOException;
-import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
 import com.fimtra.infra.channel.EndPointAddress;
 import com.fimtra.infra.channel.StaticEndPointAddressFactory;
-import com.fimtra.infra.datafission.IObserverContext;
+import com.fimtra.infra.datafission.ICodec;
 import com.fimtra.infra.datafission.IRecord;
 import com.fimtra.infra.datafission.IRecordChange;
 import com.fimtra.infra.datafission.IRecordListener;
-import com.fimtra.infra.datafission.IObserverContext.ISystemRecordNames;
-import com.fimtra.infra.datafission.IRpcInstance.ExecutionException;
 import com.fimtra.infra.datafission.IRpcInstance.TimeOutException;
-import com.fimtra.infra.datafission.core.Context;
 import com.fimtra.infra.datafission.core.ContextUtils;
 import com.fimtra.infra.datafission.core.ProxyContext;
-import com.fimtra.infra.datafission.core.Publisher;
 import com.fimtra.infra.datafission.core.StringProtocolCodec;
-import com.fimtra.infra.datafission.field.DoubleValue;
-import com.fimtra.infra.datafission.field.LongValue;
-import com.fimtra.infra.datafission.field.TextValue;
 import com.fimtra.infra.tcpchannel.TcpChannelBuilderFactory;
 import com.fimtra.infra.tcpchannel.TcpChannelUtils;
 
-/*
- * Copyright (c) 2015 Ramon Servadei, Fimtra
- * All rights reserved.
- * 
- * This file is subject to the terms and conditions defined in 
- * file 'LICENSE.txt', which is part of this source code package. 
- * The terms and conditions can also be found at http://fimtra.com/LICENSE.txt.
- */
-
 /**
+ * Benchmark subscriber. Run after starting a {@link BenchmarkPublisher}
+ * 
  * @author Ramon Servadei
  */
 public class BenchmarkSubscriber
@@ -39,32 +39,18 @@ public class BenchmarkSubscriber
 
     public static void main(String[] args) throws IOException, InterruptedException, TimeOutException
     {
-        final StringProtocolCodec proxyCodec = new StringProtocolCodec();
+        final ICodec proxyCodec = new StringProtocolCodec();
         final TcpChannelBuilderFactory channelBuilderFactory =
             new TcpChannelBuilderFactory(proxyCodec.getFrameEncodingFormat(), new StaticEndPointAddressFactory(
-                new EndPointAddress(TcpChannelUtils.LOCALHOST_IP, 22222)));
-        final ProxyContext proxyContext =
-            new ProxyContext("BenchmarkSubscriber", proxyCodec, channelBuilderFactory);
-
-        // subscribe for the 15 other data records
-        for (int i = 1; i < 16; i++)
-        {
-            proxyContext.addObserver(new IRecordListener()
-            {
-                @Override
-                public void onChange(IRecord imageValidInCallingThreadOnly, IRecordChange atomicChange)
-                {
-                    // noop
-                }
-            }, "BenchmarkRecord-" + i);
-        }
+                new EndPointAddress(args.length == 0 ? TcpChannelUtils.LOOPBACK : args[0], 22222)));
+        final ProxyContext proxyContext = new ProxyContext("BenchmarkSubscriber", proxyCodec, channelBuilderFactory);
 
         ContextUtils.getRpc(proxyContext, 2000, "runComplete");
-        
+
         final CountDownLatch finished = new CountDownLatch(1);
-        proxyContext.addObserver(new IRecordListener()
+        IRecordListener listener = new IRecordListener()
         {
-            long startNanos;
+            int runCount = 0;
 
             @Override
             public void onChange(IRecord imageValidInCallingThreadOnly, IRecordChange atomicChange)
@@ -75,36 +61,33 @@ public class BenchmarkSubscriber
                 }
 
                 final long updateNumber = imageValidInCallingThreadOnly.get("updateNumber").longValue();
-                if (updateNumber == 1)
+                long maxUpdates = imageValidInCallingThreadOnly.get("maxUpdates").longValue();
+                if (updateNumber == maxUpdates)
                 {
-                    startNanos = System.nanoTime();
-                }
-                else
-                {
-                    long maxUpdates = imageValidInCallingThreadOnly.get("maxUpdates").longValue();
-                    if (updateNumber == maxUpdates)
+                    try
                     {
-                        long diffMicros = (System.nanoTime() - startNanos) / (1000 * maxUpdates);
-                        long recordCount = imageValidInCallingThreadOnly.get("concurrentRecordCount").longValue();
-                        System.err.println(recordCount + "," + diffMicros);
-                        try
+                        proxyContext.getRpc("runComplete").execute();
+
+                        // first run is a warmup, hence 2 *
+                        if (++this.runCount == 2 * imageValidInCallingThreadOnly.get("maxRecordCount").longValue())
                         {
-                            proxyContext.getRpc("runComplete").execute(LongValue.valueOf(diffMicros));
-                        }
-                        catch (Exception e)
-                        {
-                            e.printStackTrace();
-                        }
-                        
-                        if (recordCount == imageValidInCallingThreadOnly.get("maxRecordCount").longValue())
-                        {
-                            finished.countDown();                     
+                            finished.countDown();
                         }
                     }
-
+                    catch (Exception e)
+                    {
+                        e.printStackTrace();
+                    }
                 }
             }
-        }, "BenchmarkRecord-0");
+        };
+        // subscribe for the 15 other data records
+        for (int i = 1; i < 16; i++)
+        {
+            proxyContext.addObserver(listener, "BenchmarkRecord-" + i);
+        }
+        // this subscription triggers the test
+        proxyContext.addObserver(listener, "BenchmarkRecord-0");
 
         finished.await();
         System.err.println("Finished");
