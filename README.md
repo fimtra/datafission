@@ -1,5 +1,5 @@
 #What is it?
-*Datafission is a framework for building real-time distributed data systems.* 
+*Datafission is a Java framework for building real-time distributed data systems.* 
 
 ##How it works (the 20 second version)
 
