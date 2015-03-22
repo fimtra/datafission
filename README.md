@@ -10,9 +10,8 @@
   * Records are assembled within a *context*
   * A context notifies *record listeners* when records change
   * Record listeners only receive the key-value changes in a record (only the deltas)
-  * A *publisher* attaches to a context and publishes record changes to *proxy contexts*
-  * A proxy context connects remotely to a single publisher to access records in the remote context
-  * A context can publish RPCs that can be invoked remotely by a proxy context
+  * A *publisher* attaches to a context and publishes record changes over **TCP/IP** to *proxy contexts*
+  * A proxy context can invoke RPCs published by a remote context
 
 ##What are its key features?
   * Remote data subscription
