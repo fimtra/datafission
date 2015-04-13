@@ -5,8 +5,44 @@
 	<groupId>com.fimtra.infra</groupId>
 	<artifactId>datafission</artifactId>
 	<version>0.9.8-SNAPSHOT</version>
+	<name>${project.groupId}:${project.artifactId}</name>
 	<description>A real-time distributed data framework</description>
 	<packaging>jar</packaging>
+	<url>https://github.com/fimtra/datafission</url>
+
+	<licenses>
+		<license>
+			<name>The Apache License, Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<name>Ramon Servadei</name>
+			<email>ramon.servadei@fimtra.com</email>
+			<organization>Fimtra</organization>
+			<organizationUrl>http://www.fimtra.com</organizationUrl>
+		</developer>
+		<developer>
+			<name>Paul Mackinlay</name>
+			<email>paul.mackinlay@fimtra.com</email>
+			<organization>Fimtra</organization>
+			<organizationUrl>http://www.fimtra.com</organizationUrl>
+		</developer>
+		<developer>
+			<name>James Lupton</name>
+			<email>james.lupton@fimtra.com</email>
+			<organization>Fimtra</organization>
+			<organizationUrl>http://www.fimtra.com</organizationUrl>
+		</developer>
+	</developers>
+
+	<scm>
+		<connection>scm:git:git@github.com:fimtra/datafission.git</connection>
+		<developerConnection>scm:git:git@github.com:fimtra/datafission.git</developerConnection>
+		<url>git@github.com:fimtra/datafission.git</url>
+	</scm>
 
 	<properties>
 		<plugins.compiler.version>3.1</plugins.compiler.version>
