@@ -21,3 +21,4 @@
   * Optimised threading model
   * Built-in TCP connectivity using NIO
   * Connection resilience
+  * No 3rd party library dependencies
