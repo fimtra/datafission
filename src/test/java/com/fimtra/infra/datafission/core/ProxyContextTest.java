@@ -71,7 +71,7 @@ import com.fimtra.infra.util.TestUtils.EventCheckerWithFailureReason;
  * 
  * @author Ramon Servadei
  */
-@SuppressWarnings({ "boxing", "unused", "unchecked", "rawtypes" })
+@SuppressWarnings({ "boxing", "unused" })
 public class ProxyContextTest
 {
     private static final int REMOTE_RECORD_GET_TIMEOUT_MILLIS = 1000;
@@ -94,8 +94,8 @@ public class ProxyContextTest
 
     Map<String, Map<String, Long>> recordData;
 
-    ProxyContext<?> candidate;
-    Publisher<?> publisher;
+    ProxyContext candidate;
+    Publisher publisher;
     Context context;
 
     ScheduledExecutorService executor;
@@ -504,7 +504,7 @@ public class ProxyContextTest
     public void testMultipleRemoteContextsAndSubscribeForSingleRecord() throws Exception
     {
         createComponents("testMultipleRemoteContextsAndSubscribeForSingleRecord");
-        ProxyContext<?> candidate2 = new ProxyContext("testRemote2", getProtocolCodec(), LOCALHOST, this.PORT);
+        ProxyContext candidate2 = new ProxyContext("testRemote2", getProtocolCodec(), LOCALHOST, this.PORT);
         try
         {
             final CountDownLatch gotAllLatch = new CountDownLatch(1);
@@ -548,7 +548,7 @@ public class ProxyContextTest
         InterruptedException
     {
         createComponents("testMultipleRemoteContextsAndSubscribeForRemoteContextSubscriptions");
-        ProxyContext<?> candidate2 = new ProxyContext("testRemote2", getProtocolCodec(), LOCALHOST, this.PORT);
+        ProxyContext candidate2 = new ProxyContext("testRemote2", getProtocolCodec(), LOCALHOST, this.PORT);
         try
         {
             final CountDownLatch gotAllLatch = new CountDownLatch(1);
@@ -625,7 +625,7 @@ public class ProxyContextTest
             }
         });
 
-        final ProxyContext<?> candidate2 =
+        final ProxyContext candidate2 =
             new ProxyContext("testRemote2.2(candidate2)", getProtocolCodec(), LOCALHOST, this.PORT);
         try
         {
@@ -773,7 +773,7 @@ public class ProxyContextTest
     public void testDuplicateSubscriptionsFromDifferentRemoteContexts() throws Exception
     {
         createComponents("testDuplicateSubscriptionsFromDifferentRemoteContexts");
-        ProxyContext<?> candidate2 = new ProxyContext("c2", getProtocolCodec(), LOCALHOST, this.PORT);
+        ProxyContext candidate2 = new ProxyContext("c2", getProtocolCodec(), LOCALHOST, this.PORT);
         try
         {
             CountDownLatch record1Latch = new CountDownLatch(UPDATE_COUNT);
@@ -1261,8 +1261,8 @@ public class ProxyContextTest
 
         this.PORT = getNextFreePort();
         // attach a 2nd publisher to the context
-        Publisher<?> publisher2 = new Publisher(this.context, getProtocolCodec(), LOCALHOST, this.PORT);
-        ProxyContext<?> candidate2 = new ProxyContext(this.contextName + "2", getProtocolCodec(), LOCALHOST, this.PORT);
+        Publisher publisher2 = new Publisher(this.context, getProtocolCodec(), LOCALHOST, this.PORT);
+        ProxyContext candidate2 = new ProxyContext(this.contextName + "2", getProtocolCodec(), LOCALHOST, this.PORT);
 
         try
         {
@@ -1824,7 +1824,7 @@ public class ProxyContextTest
         }
     }
 
-    private static TestLongValueSequenceCheckingAtomicChangeObserver registerObserverForMap(ProxyContext<?> remote,
+    private static TestLongValueSequenceCheckingAtomicChangeObserver registerObserverForMap(ProxyContext remote,
         String recordName, CountDownLatch latch)
     {
         TestLongValueSequenceCheckingAtomicChangeObserver observer =

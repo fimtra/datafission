@@ -99,12 +99,10 @@ import com.fimtra.infra.util.ThreadUtils;
  * {@link #RECORD_CONNECTION_STATUS_NAME}) provides application code with the ability to detect
  * connection status changes for a record.
  * 
- * @param T
- *            the object protocol, see {@link ICodec}
  * @see ISystemRecordNames#CONTEXT_RECORDS
  * @author Ramon Servadei
  */
-public final class ProxyContext<T> implements IObserverContext
+public final class ProxyContext implements IObserverContext
 {
     static final String ACK = "_ACK_";
     static final String SUBSCRIBE = "subscribe";
@@ -273,7 +271,7 @@ public final class ProxyContext<T> implements IObserverContext
     volatile boolean active;
     volatile boolean connected;
     final Context context;
-    final ICodec<T> codec;
+    final ICodec<?> codec;
     ITransportChannel channel;
     ITransportChannelBuilderFactory channelBuilderFactory;
 
@@ -320,15 +318,14 @@ public final class ProxyContext<T> implements IObserverContext
      *            the end-point port of the publisher process
      * @throws IOException
      */
-    public ProxyContext(String name, ICodec<T> codec, final String publisherNode, final int publisherPort)
+    public ProxyContext(String name, ICodec<?> codec, final String publisherNode, final int publisherPort)
         throws IOException
     {
         this(name, codec, TransportChannelBuilderFactoryLoader.load(codec.getFrameEncodingFormat(),
             new EndPointAddress(publisherNode, publisherPort)));
     }
 
-    public ProxyContext(String name, ICodec<T> codec, ITransportChannelBuilderFactory channelBuilderFactory)
-        throws IOException
+    public ProxyContext(String name, ICodec<?> codec, ITransportChannelBuilderFactory channelBuilderFactory)
     {
         super();
         this.codec = codec;
@@ -626,7 +623,11 @@ public final class ProxyContext<T> implements IObserverContext
                 this.active = false;
                 cancelReconnectTask();
                 this.context.destroy();
-                this.channel.destroy("ProxyContext destroyed");
+                // the channel can be null if destroying during a reconnection
+                if(this.channel != null)
+                {
+                    this.channel.destroy("ProxyContext destroyed");
+                }
             }
         }
         finally
@@ -1041,7 +1042,7 @@ public final class ProxyContext<T> implements IObserverContext
             return null;
         }
         RpcInstance instance = RpcInstance.constructInstanceFromDefinition(name, definition.textValue());
-        instance.setHandler(new RpcInstance.Remote.Caller<T>(name, this.codec, this.channel, this.context,
+        instance.setHandler(new RpcInstance.Remote.Caller(name, this.codec, this.channel, this.context,
             instance.remoteExecutionStartTimeoutMillis, instance.remoteExecutionDurationTimeoutMillis));
         return instance;
     }

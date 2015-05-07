@@ -732,7 +732,7 @@ public class ContextUtils
      * @throws TimeOutException
      *             if the RPC is not found in the given time
      */
-    public static IRpcInstance getRpc(final ProxyContext<?> proxy, long discoveryTimeoutMillis, final String rpcName)
+    public static IRpcInstance getRpc(final ProxyContext proxy, long discoveryTimeoutMillis, final String rpcName)
         throws TimeOutException
     {
         final AtomicReference<IRpcInstance> rpcRef = new AtomicReference<IRpcInstance>();

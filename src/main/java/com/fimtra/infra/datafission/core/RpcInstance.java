@@ -51,6 +51,7 @@ import com.fimtra.infra.util.Log;
  * 
  * @author Ramon Servadei
  */
+@SuppressWarnings("rawtypes")
 public final class RpcInstance implements IRpcInstance
 {
     static final TextValue NO_RESPONSE = TextValue.valueOf(Remote.Caller.RPC_RECORD_RESULT_PREFIX);
@@ -143,13 +144,13 @@ public final class RpcInstance implements IRpcInstance
          * @see Caller
          * @author Ramon Servadei
          */
-        static class CallReceiver<T>
+        static class CallReceiver
         {
-            private final ICodec<T> codec;
+            private final ICodec codec;
             private final IObserverContext context;
             private final ITransportChannel caller;
 
-            public CallReceiver(ICodec<T> codec, ITransportChannel caller, IObserverContext context)
+            public CallReceiver(ICodec codec, ITransportChannel caller, IObserverContext context)
             {
                 super();
                 this.codec = codec;
@@ -163,7 +164,8 @@ public final class RpcInstance implements IRpcInstance
              * @param data
              *            the RPC with arguments.
              */
-            public void execute(T data)
+            @SuppressWarnings("unchecked")
+            public void execute(Object data)
             {
                 final IRecordChange callDetails = this.codec.getRpcFromRxMessage(data);
                 final String rpcName = decodeRpcName(callDetails);
@@ -213,17 +215,17 @@ public final class RpcInstance implements IRpcInstance
          * @see CallReceiver
          * @author Ramon Servadei
          */
-        static class Caller<T> implements IRpcExecutionHandler
+        static class Caller implements IRpcExecutionHandler
         {
             static final String RPC_RECORD_RESULT_PREFIX = "_RPC_";
             private final String rpcName;
-            private final ICodec<T> codec;
+            private final ICodec codec;
             private final ITransportChannel callReceiver;
             private final IPublisherContext context;
             private final AtomicReference<Long> remoteExecutionStartTimeoutMillis;
             private final AtomicReference<Long> remoteExecutionCompletedTimeoutMillis;
-
-            public Caller(String rpcName, ICodec<T> codec, ITransportChannel callReceiver, IPublisherContext context,
+           
+            public Caller(String rpcName, ICodec codec, ITransportChannel callReceiver, IPublisherContext context,
                 AtomicReference<Long> remoteExecutionStartTimeoutMillis,
                 AtomicReference<Long> remoteExecutionCompletedTimeoutMillis)
             {

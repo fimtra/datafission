@@ -47,7 +47,7 @@ public class RemoteContextTelnetServer
     public static void main(String[] args) throws IOException
     {
         @SuppressWarnings("unused")
-        Publisher<char[]> publisher = new Publisher<char[]>(context, new StringProtocolCodec(), LOCALHOST, PORT);
+        Publisher publisher = new Publisher(context, new StringProtocolCodec(), LOCALHOST, PORT);
 
         createMapAndStartUpdating(record1);
         createMapAndStartUpdating(record2);

@@ -65,11 +65,10 @@ import com.fimtra.infra.util.SubscriptionManager;
  * <p>
  * The publisher opens up a single TCP server socket that the proxy contexts connect to.
  * 
- * @param <T>
- *            the object protocol, see {@link ICodec}
  * @author Ramon Servadei
  */
-public class Publisher<T>
+@SuppressWarnings("rawtypes")
+public class Publisher
 {
     /**
      * Delimiter for statistics attributes published for each proxy context connection in the
@@ -236,13 +235,13 @@ public class Publisher<T>
         final ITransportChannel client;
         final CopyOnWriteArraySet<String> subscriptions = new CopyOnWriteArraySet<String>();
         final long start;
-        final ICodec<T> codec;
+        final ICodec codec;
         ScheduledFuture<?> statsUpdateTask;
         volatile long messagesPublished;
         volatile long bytesPublished;
         String identity;
 
-        ProxyContextPublisher(ITransportChannel client, ICodec<T> codec)
+        ProxyContextPublisher(ITransportChannel client, ICodec codec)
         {
             this.codec = codec;
             this.start = System.currentTimeMillis();
@@ -390,7 +389,7 @@ public class Publisher<T>
 
     final Map<ITransportChannel, ProxyContextPublisher> proxyContextPublishers;
     final Context context;
-    final ICodec<T> mainCodec;
+    final ICodec mainCodec;
     final IEndPointService server;
     final IRecord connectionsRecord;
     final ProxyContextMultiplexer multiplexer;
@@ -413,13 +412,13 @@ public class Publisher<T>
      * @param port
      *            the port for the {@link EndPointAddress} of this publisher
      */
-    public Publisher(Context context, ICodec<T> codec, String node, int port)
+    public Publisher(Context context, ICodec codec, String node, int port)
     {
         super();
         this.context = context;
         this.lock = new ReentrantLock();
         this.proxyContextPublishers =
-            Collections.synchronizedMap(new HashMap<ITransportChannel, Publisher<T>.ProxyContextPublisher>());
+            Collections.synchronizedMap(new HashMap<ITransportChannel, Publisher.ProxyContextPublisher>());
         this.connectionsRecord = Context.getRecordInternal(this.context, ISystemRecordNames.CONTEXT_CONNECTIONS);
 
         // prepare to periodically publish status changes
@@ -454,11 +453,12 @@ public class Publisher<T>
                     {
                         Publisher.this.context.executeSequentialCoreTask(new ISequentialRunnable()
                         {
+                            @SuppressWarnings("unchecked")
                             @Override
                             public void run()
                             {
-                                final ICodec<T> channelsCodec = getProxyContextPublisher(source).codec;
-                                T decodedMessage = channelsCodec.decode(data);
+                                final ICodec channelsCodec = getProxyContextPublisher(source).codec;
+                                Object decodedMessage = channelsCodec.decode(data);
                                 final CommandEnum command = channelsCodec.getCommand(decodedMessage);
                                 final int maxLogLength = 128;
                                 if (decodedMessage instanceof char[])
@@ -601,14 +601,14 @@ public class Publisher<T>
     /**
      * Invoke the RPC. The RPC execution will occur in a thread bound to the client channel.
      */
-    void rpc(final T data, final ITransportChannel client)
+    void rpc(final Object data, final ITransportChannel client)
     {
         this.context.executeRpcTask(new ISequentialRunnable()
         {
             @Override
             public void run()
             {
-                new RpcInstance.Remote.CallReceiver<T>(getProxyContextPublisher(client).codec, client,
+                new RpcInstance.Remote.CallReceiver(getProxyContextPublisher(client).codec, client,
                     Publisher.this.context).execute(data);
             }
 
@@ -620,6 +620,7 @@ public class Publisher<T>
         });
     }
 
+    @SuppressWarnings("unchecked")
     void show(ITransportChannel client)
     {
         client.sendAsync(getProxyContextPublisher(client).codec.getTxMessageForShow(this.context.getRecordNames()));
