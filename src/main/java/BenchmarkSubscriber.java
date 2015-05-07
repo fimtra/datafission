@@ -21,7 +21,6 @@ import com.fimtra.infra.datafission.ICodec;
 import com.fimtra.infra.datafission.IRecord;
 import com.fimtra.infra.datafission.IRecordChange;
 import com.fimtra.infra.datafission.IRecordListener;
-import com.fimtra.infra.datafission.IRpcInstance.TimeOutException;
 import com.fimtra.infra.datafission.core.ContextUtils;
 import com.fimtra.infra.datafission.core.ProxyContext;
 import com.fimtra.infra.datafission.core.StringProtocolCodec;
