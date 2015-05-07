@@ -40,7 +40,7 @@ public abstract class Log
 {
     /** Controls logging to std.err, default is <code>false</code> for performance reasons */
     private static final boolean LOG_TO_STDERR = UtilProperties.Values.LOG_TO_STDERR;
-    private static final String TAB = "    ";
+    private static final String TAB = "|";
     private static final FastDateFormat fastDateFormat = new FastDateFormat();
     private static final ExecutorService FILE_APPENDER_EXECUTOR =
         ThreadUtils.newSingleThreadExecutorService("LogAsyncFileAppender");
