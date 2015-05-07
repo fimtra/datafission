@@ -19,10 +19,7 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.InterfaceAddress;
-import java.net.NetworkInterface;
 import java.net.ServerSocket;
-import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -30,7 +27,6 @@ import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -183,35 +179,7 @@ public abstract class TcpChannelUtils
         catch (UnknownHostException e)
         {
             throw new RuntimeException("Could not get host address", e);
-        }
-        determineip: try
-        {
-            for (NetworkInterface networkInterface : Collections.list(NetworkInterface.getNetworkInterfaces()))
-            {
-                for (InterfaceAddress interfaceAddress : networkInterface.getInterfaceAddresses())
-                {
-                    if (networkInterface.isUp())
-                    {
-                        InetAddress inetAddress = interfaceAddress.getAddress();
-                        if (inetAddress != null && !inetAddress.isLoopbackAddress()
-                            && !inetAddress.isSiteLocalAddress())
-                        {
-                            String ipAddress = inetAddress.getHostAddress();
-                            if (ipAddress.matches("^\\d++\\.\\d++\\.\\d++\\.\\d++$"))
-                            {
-                                hostAddress = ipAddress;
-                                break determineip;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        catch (SocketException e)
-        {
-            Log.log(TcpChannelUtils.class, "Could not determine IP address from network interfaces: ", e.getMessage());
-        }
-
+        }       
         LOCALHOST_IP = hostAddress;
     }
 
