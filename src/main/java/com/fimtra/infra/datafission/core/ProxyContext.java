@@ -326,7 +326,7 @@ public final class ProxyContext implements IObserverContext
             new EndPointAddress(publisherNode, publisherPort)));
     }
 
-    public ProxyContext(String name, ICodec codec, ITransportChannelBuilderFactory channelBuilderFactory)
+    public ProxyContext(String name, ICodec codec, ITransportChannelBuilderFactory channelBuilderFactory) throws IOException
     {
         super();
         this.codec = codec;
