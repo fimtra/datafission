@@ -102,6 +102,7 @@ import com.fimtra.infra.util.ThreadUtils;
  * @see ISystemRecordNames#CONTEXT_RECORDS
  * @author Ramon Servadei
  */
+@SuppressWarnings("rawtypes")
 public final class ProxyContext implements IObserverContext
 {
     static final String ACK = "_ACK_";
@@ -270,15 +271,15 @@ public final class ProxyContext implements IObserverContext
     final Lock lock;
     volatile boolean active;
     volatile boolean connected;
-    final Context context;
-    final ICodec<?> codec;
+    final Context context;    
+    final ICodec codec;
     ITransportChannel channel;
     ITransportChannelBuilderFactory channelBuilderFactory;
 
     /** @see #RECORD_CONNECTION_STATUS_NAME */
     final IRecord remoteConnectionStatusRecord;
     /** Signals if a reconnection is in progress */
-    volatile ScheduledFuture<?> reconnectTask;
+    volatile ScheduledFuture reconnectTask;
     /**
      * The period in milliseconds to wait before trying a reconnect, default is
      * {@link Values#PROXY_CONTEXT_RECONNECT_PERIOD_MILLIS}
@@ -318,14 +319,14 @@ public final class ProxyContext implements IObserverContext
      *            the end-point port of the publisher process
      * @throws IOException
      */
-    public ProxyContext(String name, ICodec<?> codec, final String publisherNode, final int publisherPort)
+    public ProxyContext(String name, ICodec codec, final String publisherNode, final int publisherPort)
         throws IOException
     {
         this(name, codec, TransportChannelBuilderFactoryLoader.load(codec.getFrameEncodingFormat(),
             new EndPointAddress(publisherNode, publisherPort)));
     }
 
-    public ProxyContext(String name, ICodec<?> codec, ITransportChannelBuilderFactory channelBuilderFactory)
+    public ProxyContext(String name, ICodec codec, ITransportChannelBuilderFactory channelBuilderFactory)
     {
         super();
         this.codec = codec;

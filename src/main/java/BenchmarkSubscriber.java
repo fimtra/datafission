@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
 import com.fimtra.infra.channel.EndPointAddress;
@@ -37,9 +36,9 @@ import com.fimtra.infra.tcpchannel.TcpChannelUtils;
 public class BenchmarkSubscriber
 {
 
-    public static void main(String[] args) throws IOException, InterruptedException, TimeOutException
+    public static void main(String[] args) throws Exception
     {
-        final ICodec proxyCodec = new StringProtocolCodec();
+        final ICodec<?> proxyCodec = new StringProtocolCodec();
         final TcpChannelBuilderFactory channelBuilderFactory =
             new TcpChannelBuilderFactory(proxyCodec.getFrameEncodingFormat(), new StaticEndPointAddressFactory(
                 new EndPointAddress(args.length == 0 ? TcpChannelUtils.LOOPBACK : args[0], 22222)));

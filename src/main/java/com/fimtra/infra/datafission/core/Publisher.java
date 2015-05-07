@@ -236,7 +236,7 @@ public class Publisher
         final CopyOnWriteArraySet<String> subscriptions = new CopyOnWriteArraySet<String>();
         final long start;
         final ICodec codec;
-        ScheduledFuture<?> statsUpdateTask;
+        ScheduledFuture statsUpdateTask;
         volatile long messagesPublished;
         volatile long bytesPublished;
         String identity;
@@ -395,7 +395,7 @@ public class Publisher
     final ProxyContextMultiplexer multiplexer;
     volatile boolean active;
     volatile long contextConnectionsRecordPublishPeriodMillis = 10000;
-    ScheduledFuture<?> contextConnectionsRecordPublishTask;
+    ScheduledFuture contextConnectionsRecordPublishTask;
     volatile long messagesPublished;
     volatile long bytesPublished;
 
