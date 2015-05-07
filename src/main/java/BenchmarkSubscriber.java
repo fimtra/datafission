@@ -15,17 +15,17 @@
  */
 import java.util.concurrent.CountDownLatch;
 
-import com.fimtra.infra.channel.EndPointAddress;
-import com.fimtra.infra.channel.StaticEndPointAddressFactory;
-import com.fimtra.infra.datafission.ICodec;
-import com.fimtra.infra.datafission.IRecord;
-import com.fimtra.infra.datafission.IRecordChange;
-import com.fimtra.infra.datafission.IRecordListener;
-import com.fimtra.infra.datafission.core.ContextUtils;
-import com.fimtra.infra.datafission.core.ProxyContext;
-import com.fimtra.infra.datafission.core.StringProtocolCodec;
-import com.fimtra.infra.tcpchannel.TcpChannelBuilderFactory;
-import com.fimtra.infra.tcpchannel.TcpChannelUtils;
+import com.fimtra.channel.EndPointAddress;
+import com.fimtra.channel.StaticEndPointAddressFactory;
+import com.fimtra.datafission.ICodec;
+import com.fimtra.datafission.IRecord;
+import com.fimtra.datafission.IRecordChange;
+import com.fimtra.datafission.IRecordListener;
+import com.fimtra.datafission.core.ContextUtils;
+import com.fimtra.datafission.core.ProxyContext;
+import com.fimtra.datafission.core.StringProtocolCodec;
+import com.fimtra.tcpchannel.TcpChannelBuilderFactory;
+import com.fimtra.tcpchannel.TcpChannelUtils;
 
 /**
  * Benchmark subscriber. Run after starting a {@link BenchmarkPublisher}
