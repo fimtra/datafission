@@ -1076,6 +1076,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
      */
     void setSequence(String recordName, long sequence)
     {
+        this.sequences.get(recordName).set(sequence);
         getPendingAtomicChangesForWrite(recordName).setSequence(sequence);
     }
 }
