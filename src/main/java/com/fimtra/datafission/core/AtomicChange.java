@@ -532,7 +532,7 @@ public final class AtomicChange implements IRecordChange
     @Override
     public void applyCompleteAtomicChangeToRecord(IRecord record)
     {
-        // use code should not be able to set sequences, hence the instance-of check
+        // user code should not be able to set sequences, hence the instance-of check
         if (record instanceof Record)
         {
             ((Record) record).setSequence(this.sequence.get().longValue());
