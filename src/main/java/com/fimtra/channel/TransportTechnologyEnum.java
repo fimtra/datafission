@@ -27,7 +27,7 @@ import com.fimtra.util.ObjectUtils;
 public enum TransportTechnologyEnum
 {
     // specify the classes used per transport technology
-        TCP("com.fimtra.infra.tcpchannel.TcpChannelBuilderFactory", "com.fimtra.infra.tcpchannel.TcpServerBuilder"),
+        TCP("com.fimtra.tcpchannel.TcpChannelBuilderFactory", "com.fimtra.tcpchannel.TcpServerBuilder"),
 
         SOLACE("com.fimtra.channel.solace.SolaceChannelBuilderFactory",
             "com.fimtra.channel.solace.SolaceServiceBuilder");
