@@ -54,7 +54,7 @@ import com.fimtra.util.Log;
 @SuppressWarnings("rawtypes")
 public final class RpcInstance implements IRpcInstance
 {
-    static final TextValue NO_RESPONSE = TextValue.valueOf(Remote.Caller.RPC_RECORD_RESULT_PREFIX);
+    static final TextValue NO_ACK = TextValue.valueOf(Remote.Caller.RPC_RECORD_RESULT_PREFIX);
 
     /**
      * Handles the execution of the RPC.
@@ -175,8 +175,8 @@ public final class RpcInstance implements IRpcInstance
 
                 IRecordChange atomicChange =
                     new AtomicChange(resultRecordName, resultEntries, ContextUtils.EMPTY_MAP, ContextUtils.EMPTY_MAP);
-                final boolean responseRequired = !NO_RESPONSE.textValue().equals(resultRecordName);
-                if (responseRequired)
+                final boolean ackRequired = !NO_ACK.textValue().equals(resultRecordName);
+                if (ackRequired)
                 {
                     // tell the remote caller we have started
                     Log.log(CallReceiver.class, "(->) STARTED ", resultRecordName);
@@ -193,7 +193,7 @@ public final class RpcInstance implements IRpcInstance
                     resultEntries.put(EXCEPTION, new TextValue(e.toString()));
                 }
 
-                if (responseRequired)
+                if (ackRequired)
                 {
                     // build up the result record change and send back
                     atomicChange =
@@ -244,9 +244,9 @@ public final class RpcInstance implements IRpcInstance
                 final CountDownLatch executionStartedLatch = new CountDownLatch(1);
                 final CountDownLatch executionCompleteLatch = new CountDownLatch(1);
                 final AtomicReference<Map<String, IValue>> result = new AtomicReference<Map<String, IValue>>();
-                final boolean noResponse = args.length == 0 ? false : args[args.length - 1] == NO_RESPONSE;
+                final boolean noAck = args.length == 0 ? false : args[args.length - 1] == NO_ACK;
                 final String resultMapName =
-                    noResponse ? NO_RESPONSE.textValue() : RPC_RECORD_RESULT_PREFIX + this.rpcName + ":"
+                    noAck ? NO_ACK.textValue() : RPC_RECORD_RESULT_PREFIX + this.rpcName + ":"
                         + System.identityHashCode(this) + ":" + System.currentTimeMillis() + ":"
                         + Thread.currentThread().getId();
 
@@ -268,11 +268,11 @@ public final class RpcInstance implements IRpcInstance
                     }
                 };
 
-                if (noResponse)
+                if (noAck)
                 {
                     IValue[] callArgs = new IValue[args.length - 1];
                     System.arraycopy(args, 0, callArgs, 0, args.length - 1);
-                    Log.log(Caller.class, "(->) CALLING RPC (no response) ", this.rpcName);
+                    Log.log(Caller.class, "(->) CALLING RPC (no ack) ", this.rpcName);
                     this.callReceiver.sendAsync(this.codec.getTxMessageForRpc(this.rpcName, callArgs, resultMapName));
                     return null;
                 }
@@ -592,7 +592,7 @@ public final class RpcInstance implements IRpcInstance
             checkRpcArgs(args);
             IValue[] argsToSend = new IValue[args.length + 1];
             System.arraycopy(args, 0, argsToSend, 0, args.length);
-            argsToSend[args.length] = (NO_RESPONSE);
+            argsToSend[args.length] = (NO_ACK);
             this.handler.execute(argsToSend);
         }
         catch (TimeOutException e)
