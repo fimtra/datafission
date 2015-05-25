@@ -4,7 +4,7 @@
 
 	<groupId>com.fimtra</groupId>
 	<artifactId>datafission</artifactId>
-	<version>0.9.9-SNAPSHOT</version>
+	<version>0.9.10-SNAPSHOT</version>
 	<name>${project.groupId}:${project.artifactId}</name>
 	<description>A real-time distributed data framework</description>
 	<packaging>jar</packaging>
@@ -97,7 +97,6 @@
 					</archive>
 				</configuration>
 			</plugin>
-
 			<plugin>
 				<artifactId>maven-clean-plugin</artifactId>
 				<version>${plugins.clean.version}</version>
@@ -128,6 +127,48 @@
 					<reuseForks>false</reuseForks>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>${plugins.source.version}</version>
+				<configuration>
+					<archive>
+						<manifestEntries>
+							<Version>${project.version}</Version>
+							<Built-By>fimtra.com</Built-By>
+						</manifestEntries>
+					</archive>
+				</configuration>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar-no-fork</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>${plugins.javadoc.version}</version>
+				<configuration>
+					<archive>
+						<manifestEntries>
+							<Version>${project.version}</Version>
+							<Built-By>fimtra.com</Built-By>
+						</manifestEntries>
+					</archive>
+				</configuration>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
@@ -157,32 +198,6 @@
 								<phase>verify</phase>
 								<goals>
 									<goal>sign</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-source-plugin</artifactId>
-						<version>${plugins.source.version}</version>
-						<executions>
-							<execution>
-								<id>attach-sources</id>
-								<goals>
-									<goal>jar-no-fork</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-javadoc-plugin</artifactId>
-						<version>${plugins.javadoc.version}</version>
-						<executions>
-							<execution>
-								<id>attach-javadocs</id>
-								<goals>
-									<goal>jar</goal>
 								</goals>
 							</execution>
 						</executions>

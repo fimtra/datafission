@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -250,9 +251,9 @@ public class ProxyContextTest
         this.candidate.setReconnectPeriodMillis(200);
 
         final TestCachingAtomicChangeObserver observer = new TestCachingAtomicChangeObserver();
-        CountDownLatch addObserverLatch =
+        Future<Map<String, Boolean>> addObserverLatch =
             this.candidate.addObserver(observer, "comma in, record", "double comma,, record");
-        assertTrue(addObserverLatch.await(10, TimeUnit.SECONDS));
+        assertTrue(addObserverLatch.get(10, TimeUnit.SECONDS).size() == 2);
 
         this.publisher.destroy();
         Thread.sleep(1200);
@@ -261,7 +262,7 @@ public class ProxyContextTest
 
         this.publisher = new Publisher(this.context, getProtocolCodec(), LOCALHOST, this.PORT);
 
-        assertTrue(addObserverLatch.await(10, TimeUnit.SECONDS));
+        assertTrue(addObserverLatch.get(10, TimeUnit.SECONDS).size() == 1);
     }
 
     @Test
@@ -392,7 +393,7 @@ public class ProxyContextTest
         final TestCachingAtomicChangeObserver listener = new TestCachingAtomicChangeObserver();
         listener.latch = new CountDownLatch(2);
         assertTrue("Did not get response for subscription",
-            this.candidate.addObserver(listener, recordName).await(timeout, TimeUnit.SECONDS));
+            this.candidate.addObserver(listener, recordName).get(timeout, TimeUnit.SECONDS).size() == 1);
 
         // we must wait until we are sure the listener has been added
         assertTrue(recordSubscribedLatch.await(timeout, TimeUnit.SECONDS));

@@ -36,16 +36,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.fimtra.datafission.DataFissionProperties;
+import com.fimtra.datafission.DataFissionProperties.Values;
 import com.fimtra.datafission.IObserverContext;
+import com.fimtra.datafission.IObserverContext.ISystemRecordNames;
 import com.fimtra.datafission.IPublisherContext;
 import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordChange;
 import com.fimtra.datafission.IRecordListener;
 import com.fimtra.datafission.IRpcInstance;
-import com.fimtra.datafission.IValue;
-import com.fimtra.datafission.DataFissionProperties.Values;
-import com.fimtra.datafission.IObserverContext.ISystemRecordNames;
 import com.fimtra.datafission.IRpcInstance.TimeOutException;
+import com.fimtra.datafission.IValue;
 import com.fimtra.datafission.core.ProxyContext.IRemoteSystemRecordNames;
 import com.fimtra.datafission.field.BlobValue;
 import com.fimtra.thimble.TaskStatistics;
@@ -602,6 +602,7 @@ public class ContextUtils
             subscribersFor = subscribers.get(recordName);
             for (i = 0; i < subscribersFor.length; i++)
             {
+                // todo watch out that this isnt a back-door to get around permissioning
                 context.addObserver(subscribersFor[i], recordName);
             }
         }

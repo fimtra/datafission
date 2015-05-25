@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 
 import com.fimtra.datafission.core.ContextUtils;
@@ -228,9 +229,10 @@ public interface IObserverContext
      *            the observer to add
      * @param recordNames
      *            the names of the records to observe
-     * @return a latch triggered when the listener is added to all records
+     * @return a future triggered when all records have been processed. The map contains a boolean
+     *         result for each recordname to indicate if the record is being observed or not.
      */
-    CountDownLatch addObserver(IRecordListener observer, String... recordNames);
+    Future<Map<String, Boolean>> addObserver(IRecordListener observer, String... recordNames);
 
     /**
      * Remove the observer from the named record(s).
@@ -254,8 +256,7 @@ public interface IObserverContext
      * <p>
      * <b>NOTE: listeners are NOT notified that any records are removed. To have a
      * "notify and shutdown" operation, call
-     * {@link ContextUtils#removeRecordsAndDestroyContext(com.fimtra.datafission.core.Context)}
-     * </b>
+     * {@link ContextUtils#removeRecordsAndDestroyContext(com.fimtra.datafission.core.Context)} </b>
      */
     void destroy();
 

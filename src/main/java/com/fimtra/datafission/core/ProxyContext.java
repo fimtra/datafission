@@ -30,6 +30,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +48,7 @@ import com.fimtra.channel.ITransportChannelBuilder;
 import com.fimtra.channel.ITransportChannelBuilderFactory;
 import com.fimtra.channel.TransportChannelBuilderFactoryLoader;
 import com.fimtra.datafission.DataFissionProperties;
+import com.fimtra.datafission.DataFissionProperties.Values;
 import com.fimtra.datafission.ICodec;
 import com.fimtra.datafission.IObserverContext;
 import com.fimtra.datafission.IRecord;
@@ -52,7 +56,6 @@ import com.fimtra.datafission.IRecordChange;
 import com.fimtra.datafission.IRecordListener;
 import com.fimtra.datafission.IRpcInstance;
 import com.fimtra.datafission.IValue;
-import com.fimtra.datafission.DataFissionProperties.Values;
 import com.fimtra.datafission.core.IStatusAttribute.Connection;
 import com.fimtra.datafission.core.RpcInstance.Remote.Caller;
 import com.fimtra.datafission.field.TextValue;
@@ -60,6 +63,7 @@ import com.fimtra.tcpchannel.TcpChannel;
 import com.fimtra.thimble.ISequentialRunnable;
 import com.fimtra.util.Log;
 import com.fimtra.util.ObjectUtils;
+import com.fimtra.util.Pair;
 import com.fimtra.util.StringUtils;
 import com.fimtra.util.SubscriptionManager;
 import com.fimtra.util.ThreadUtils;
@@ -106,6 +110,7 @@ import com.fimtra.util.ThreadUtils;
 public final class ProxyContext implements IObserverContext
 {
     static final String ACK = "_ACK_";
+    static final String NOK = "_NOK_";
     static final String SUBSCRIBE = "subscribe";
     static final String UNSUBSCRIBE = "unsubscribe";
     static final String ACK_ACTION_ARGS_START = "?";
@@ -271,7 +276,7 @@ public final class ProxyContext implements IObserverContext
     final Lock lock;
     volatile boolean active;
     volatile boolean connected;
-    final Context context;    
+    final Context context;
     final ICodec codec;
     ITransportChannel channel;
     ITransportChannelBuilderFactory channelBuilderFactory;
@@ -299,6 +304,13 @@ public final class ProxyContext implements IObserverContext
      * left in the map
      */
     final ConcurrentMap<String, List<CountDownLatch>> actionResponseLatches;
+    /**
+     * When all responses for a subscribe action are received, the future in this map is triggered
+     */
+    final ConcurrentMap<CountDownLatch, RunnableFuture<?>> actionSubscribeFutures;
+    // TODO
+    final ConcurrentMap<CountDownLatch, Map<String, Boolean>> actionSubscribeResults;
+
     final AtomicChangeTeleporter teleportReceiver;
     final Map<String, Map<Long, IRecordChange>> cachedDeltas;
     /** Tracks when the image of a record is received (deltas consumed after this) */
@@ -332,6 +344,8 @@ public final class ProxyContext implements IObserverContext
         this.codec = codec;
         this.context = new Context(name);
         this.lock = new ReentrantLock();
+        this.actionSubscribeFutures = new ConcurrentHashMap<CountDownLatch, RunnableFuture<?>>();
+        this.actionSubscribeResults = new ConcurrentHashMap<CountDownLatch, Map<String, Boolean>>();
         this.actionResponseLatches = new ConcurrentHashMap<String, List<CountDownLatch>>();
         this.cachedDeltas = new ConcurrentHashMap<String, Map<Long, IRecordChange>>();
         this.teleportReceiver = new AtomicChangeTeleporter(0);
@@ -343,7 +357,7 @@ public final class ProxyContext implements IObserverContext
 
         this.channelBuilderFactory = channelBuilderFactory;
         this.active = true;
-        
+
         // this allows the ProxyContext to be constructed and reconnects asynchronously
         reconnect();
     }
@@ -491,9 +505,17 @@ public final class ProxyContext implements IObserverContext
     }
 
     @Override
-    public CountDownLatch addObserver(IRecordListener observer, String... recordNames)
+    public Future<Map<String, Boolean>> addObserver(IRecordListener observer, String... recordNames)
     {
-        CountDownLatch latch = DEFAULT_COUNT_DOWN_LATCH;
+        final Map<String, Boolean> subscribeResults = new HashMap<String, Boolean>(recordNames.length);
+
+        final RunnableFuture<Map<String, Boolean>> futureResult = new FutureTask<Map<String, Boolean>>(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+            }
+        }, subscribeResults);
 
         this.lock.lock();
         try
@@ -533,15 +555,15 @@ public final class ProxyContext implements IObserverContext
                         }
                     };
                 }
-                latch = executeTask(recordsToSubscribeFor, SUBSCRIBE, task);
+
+                executeTask(recordsToSubscribeFor, SUBSCRIBE, task, futureResult, subscribeResults);
             }
         }
         finally
         {
             this.lock.unlock();
         }
-
-        return latch;
+        return futureResult;
     }
 
     @Override
@@ -581,7 +603,9 @@ public final class ProxyContext implements IObserverContext
                             }
                         }
                     };
-                    latch = executeTask(recordsToUnsubscribe, UNSUBSCRIBE, task);
+                    latch = executeTask(recordsToUnsubscribe, UNSUBSCRIBE, task,
+                    // todo this is naff
+                        null, null);
                 }
 
                 // remove the records that are no longer subscribed
@@ -626,7 +650,7 @@ public final class ProxyContext implements IObserverContext
                 cancelReconnectTask();
                 this.context.destroy();
                 // the channel can be null if destroying during a reconnection
-                if(this.channel != null)
+                if (this.channel != null)
                 {
                     this.channel.destroy("ProxyContext destroyed");
                 }
@@ -777,9 +801,11 @@ public final class ProxyContext implements IObserverContext
         }
 
         final String changeName = changeToApply.getName();
-        if (changeName.startsWith(ACK, 0))
+        if (changeName.startsWith(ACK, 0) || changeName.startsWith(NOK, 0))
         {
             Log.log(this, "(<-) ", changeName);
+
+            final Boolean subscribeOk = Boolean.valueOf(changeName.startsWith(ACK, 0));
 
             final int startOfRecordNames = changeName.indexOf(ACK_ACTION_ARGS_START);
             final List<String> recordNames =
@@ -798,10 +824,21 @@ public final class ProxyContext implements IObserverContext
                         if (latch != null)
                         {
                             latch.countDown();
+                            if (action.equals(SUBSCRIBE))
+                            {
+                                this.actionSubscribeResults.get(latch).put(recordName, subscribeOk);
+                                // todo this is UGLY
+                                if (latch.getCount() == 0)
+                                {
+                                    this.actionSubscribeResults.remove(latch);
+                                    this.actionSubscribeFutures.remove(latch).run();
+                                }
+                            }
                         }
                     }
                 }
             }
+
             return;
         }
 
@@ -1231,7 +1268,8 @@ public final class ProxyContext implements IObserverContext
         }
     }
 
-    CountDownLatch executeTask(final String[] recordNames, final String action, final Runnable task)
+    CountDownLatch executeTask(final String[] recordNames, final String action, final Runnable task,
+        RunnableFuture<Map<String, Boolean>> subscribeFutureResult, Map<String, Boolean> subscribeResults)
     {
         CountDownLatch latch = new CountDownLatch(recordNames.length);
         List<CountDownLatch> latches;
@@ -1246,6 +1284,13 @@ public final class ProxyContext implements IObserverContext
             }
             latches.add(latch);
         }
+
+        if (subscribeFutureResult != null)
+        {
+            this.actionSubscribeResults.put(latch, subscribeResults);
+            this.actionSubscribeFutures.put(latch, subscribeFutureResult);
+        }
+
         task.run();
         return latch;
     }

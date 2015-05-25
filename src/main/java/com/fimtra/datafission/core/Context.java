@@ -17,6 +17,7 @@ package com.fimtra.datafission.core;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +27,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -45,12 +48,12 @@ import com.fimtra.thimble.ICoalescingRunnable;
 import com.fimtra.thimble.ISequentialRunnable;
 import com.fimtra.thimble.ThimbleExecutor;
 import com.fimtra.util.DeadlockDetector;
+import com.fimtra.util.DeadlockDetector.DeadlockObserver;
+import com.fimtra.util.DeadlockDetector.ThreadInfoWrapper;
 import com.fimtra.util.Log;
 import com.fimtra.util.ObjectUtils;
 import com.fimtra.util.SubscriptionManager;
 import com.fimtra.util.SystemUtils;
-import com.fimtra.util.DeadlockDetector.DeadlockObserver;
-import com.fimtra.util.DeadlockDetector.ThreadInfoWrapper;
 
 /**
  * A context is the home for a group of records. The definition of the context is application
@@ -336,7 +339,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
         {
             Log.log(this, "Subscriber count is ", Integer.toString(subscribersForInstance.length),
                 " for created record '", name, "'");
-            
+
             record.getWriteLock().lock();
             try
             {
@@ -645,18 +648,30 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
     }
 
     @Override
-    public CountDownLatch addObserver(final IRecordListener observer, final String... recordNames)
+    public Future<Map<String, Boolean>> addObserver(final IRecordListener observer, final String... recordNames)
     {
         if (recordNames == null || recordNames.length == 0)
         {
             throw new IllegalArgumentException("Null or zero-length subscriptions " + Arrays.toString(recordNames));
         }
 
-        for (int i = 0; i < recordNames.length; i++)
-        {
-            doAddSingleObserver(recordNames[i], observer);
-        }
-        return new CountDownLatch(0);
+        final Map<String, Boolean> resultMap = new HashMap<String, Boolean>(recordNames.length);
+        final FutureTask<Map<String, Boolean>> futureResult =
+            new FutureTask<Map<String, Boolean>>(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    for (int i = 0; i < recordNames.length; i++)
+                    {
+                        doAddSingleObserver(recordNames[i], observer);
+                        resultMap.put(recordNames[i], Boolean.TRUE);
+                    }
+                }
+            }, resultMap);
+
+        futureResult.run();
+        return futureResult;
     }
 
     private void doAddSingleObserver(final String name, final IRecordListener observer)
@@ -689,7 +704,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
                             final long start = System.nanoTime();
                             final ImmutableRecord imageToPublish = ImmutableRecord.liveImage(image);
                             observer.onChange(imageToPublish, new AtomicChange(imageToPublish));
-                            ContextUtils.measureTask(name, "record image-on-join", observer,
+                            ContextUtils.measureTask(name, "record image-on-subscribe", observer,
                                 (System.nanoTime() - start));
                         }
 
