@@ -81,7 +81,7 @@
 				<version>${plugins.compiler.version}</version>
 				<configuration>
 					<source>1.6</source>
-					<target>1.6</target>
+					<target>1.7</target>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -97,7 +97,6 @@
 					</archive>
 				</configuration>
 			</plugin>
-
 			<plugin>
 				<artifactId>maven-clean-plugin</artifactId>
 				<version>${plugins.clean.version}</version>
@@ -227,6 +226,21 @@
 								</goals>
 							</execution>
 						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>java6</id>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>${plugins.compiler.version}</version>
+						<configuration>
+							<source>1.6</source>
+							<target>1.6</target>
+						</configuration>
 					</plugin>
 				</plugins>
 			</build>
