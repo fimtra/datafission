@@ -29,11 +29,11 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableModel;
 
 import com.fimtra.datafission.IObserverContext;
+import com.fimtra.datafission.IObserverContext.ISystemRecordNames;
 import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordChange;
 import com.fimtra.datafission.IRecordListener;
 import com.fimtra.datafission.IValue;
-import com.fimtra.datafission.IObserverContext.ISystemRecordNames;
 import com.fimtra.datafission.core.ImmutableRecord;
 import com.fimtra.datafission.field.TextValue;
 import com.fimtra.util.Pair;

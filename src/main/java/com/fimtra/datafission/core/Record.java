@@ -32,12 +32,12 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import com.fimtra.datafission.DataFissionProperties.Values;
 import com.fimtra.datafission.IObserverContext;
 import com.fimtra.datafission.IPublisherContext;
 import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordListener;
 import com.fimtra.datafission.IValue;
-import com.fimtra.datafission.DataFissionProperties.Values;
 import com.fimtra.datafission.core.Context.NoopAtomicChangeManager;
 import com.fimtra.datafission.field.DoubleValue;
 import com.fimtra.datafission.field.LongValue;

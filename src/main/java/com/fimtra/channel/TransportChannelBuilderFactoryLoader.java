@@ -15,8 +15,8 @@
  */
 package com.fimtra.channel;
 
-import com.fimtra.tcpchannel.TcpChannelBuilderFactory;
 import com.fimtra.tcpchannel.TcpChannel.FrameEncodingFormatEnum;
+import com.fimtra.tcpchannel.TcpChannelBuilderFactory;
 import com.fimtra.util.ObjectUtils;
 
 /**
