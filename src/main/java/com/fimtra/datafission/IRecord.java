@@ -154,11 +154,11 @@ public interface IRecord extends Map<String, IValue>
     Map<String, IValue> asFlattenedMap();
 
     /**
-     * Get a read-only version of this record. Changes to the underlying record will be seen by the
-     * immutable instance.
-     * 
-     * @return an immutable instance that will reflect all current and future changes to this record
-     */
+	 * Get a read-only version of this record. Changes to the underlying record will not be seen by the
+	 * immutable instance.
+	 * 
+	 * @return an immutable instance that will reflect all current and future changes to this record
+	 */
     IRecord getImmutableInstance();
 
     /**
