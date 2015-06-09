@@ -45,9 +45,9 @@
 	</scm>
 
 	<properties>
-		<plugins.compiler.version>3.1</plugins.compiler.version>
+		<plugins.compiler.version>3.3</plugins.compiler.version>
 		<plugins.eclipse.version>2.9</plugins.eclipse.version>
-		<plugins.jar.version>2.4</plugins.jar.version>
+		<plugins.jar.version>2.6</plugins.jar.version>
 		<plugins.clean.version>2.5</plugins.clean.version>
 		<plugins.release.version>2.4.1</plugins.release.version>
 		<plugins.surefire.version>2.16</plugins.surefire.version>
@@ -226,6 +226,50 @@
 								</goals>
 							</execution>
 						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>central-java6</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>${plugins.gpg.version}</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-jar-plugin</artifactId>
+						<version>${plugins.jar.version}</version>
+						<executions>
+							<execution>
+								<phase>package</phase>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+								<configuration>
+									<classifier>java6</classifier>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>${plugins.compiler.version}</version>
+						<configuration>
+							<source>1.6</source>
+							<target>1.6</target>
+						</configuration>
 					</plugin>
 				</plugins>
 			</build>
