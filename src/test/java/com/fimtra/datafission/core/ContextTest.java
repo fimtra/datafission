@@ -22,6 +22,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,19 +42,17 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import com.fimtra.datafission.IObserverContext.ISystemRecordNames;
+import com.fimtra.datafission.IPermissionFilter;
 import com.fimtra.datafission.IPublisherContext;
 import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordChange;
 import com.fimtra.datafission.IRecordListener;
 import com.fimtra.datafission.IValidator;
 import com.fimtra.datafission.IValue;
-import com.fimtra.datafission.IObserverContext.ISystemRecordNames;
 import com.fimtra.datafission.IValue.TypeEnum;
-import com.fimtra.datafission.core.Context;
-import com.fimtra.datafission.core.ImmutableRecord;
-import com.fimtra.datafission.core.Record;
-import com.fimtra.datafission.core.RpcInstance;
 import com.fimtra.datafission.field.DoubleValue;
 import com.fimtra.datafission.field.LongValue;
 import com.fimtra.datafission.field.TextValue;
@@ -177,6 +178,43 @@ public class ContextTest
 
         this.candidate.removeObserver(observer, "one", "two", "three");
         assertEquals(0, this.candidate.getSubscribedRecords().size());
+    }
+
+    @SuppressWarnings("boxing")
+    @Test
+    public void testAddObserver_permission() throws Exception
+    {
+        String name2 = "duff2";
+        String permissionToken = "pt_sdf2";
+        IPermissionFilter filter = Mockito.mock(IPermissionFilter.class);
+        when(filter.accept(eq(permissionToken), eq(name))).thenReturn(true);
+        when(filter.accept(eq(permissionToken), eq(name2))).thenReturn(false);
+
+        this.candidate.setPermissionFilter(filter);
+
+        Map<String, IValue> instance = this.candidate.createRecord(name);
+        instance.put(K1, V1);
+        instance.put(K2, V2);
+        this.candidate.publishAtomicChange(name).await();
+
+        instance = this.candidate.createRecord(name2);
+        instance.put(K5, V2p);
+        this.candidate.publishAtomicChange(name2).await();
+
+        final TestCachingAtomicChangeObserver observer = new TestCachingAtomicChangeObserver();
+
+        // add the first observer, wait for update
+        observer.latch = new CountDownLatch(1);
+        Map<String, Boolean> result = this.candidate.addObserver(permissionToken, observer, name, name2).get();
+        assertEquals(2, result.size());
+        assertTrue("Got: " + result, result.get(name));
+        assertFalse("Got: " + result, result.get(name2));
+        assertTrue(observer.latch.await(1, TimeUnit.SECONDS));
+        assertEquals(this.candidate.getRecord(name), observer.images.get(0));
+
+        Mockito.verify(filter).accept(eq(permissionToken), eq(name));
+        Mockito.verify(filter).accept(eq(permissionToken), eq(name2));
+        verifyNoMoreInteractions(filter);
     }
 
     @Test

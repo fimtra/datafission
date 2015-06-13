@@ -22,6 +22,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,6 +38,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -42,9 +46,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.fimtra.channel.ChannelUtils;
 import com.fimtra.channel.ChannelWatchdog;
+import com.fimtra.datafission.IPermissionFilter;
 import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordChange;
 import com.fimtra.datafission.IRecordListener;
@@ -250,9 +256,9 @@ public class ProxyContextTest
         this.candidate.setReconnectPeriodMillis(200);
 
         final TestCachingAtomicChangeObserver observer = new TestCachingAtomicChangeObserver();
-        CountDownLatch addObserverLatch =
+        Future<Map<String, Boolean>> addObserverLatch =
             this.candidate.addObserver(observer, "comma in, record", "double comma,, record");
-        assertTrue(addObserverLatch.await(10, TimeUnit.SECONDS));
+        assertTrue(addObserverLatch.get(10, TimeUnit.SECONDS).size() == 2);
 
         this.publisher.destroy();
         Thread.sleep(1200);
@@ -261,7 +267,7 @@ public class ProxyContextTest
 
         this.publisher = new Publisher(this.context, getProtocolCodec(), LOCALHOST, this.PORT);
 
-        assertTrue(addObserverLatch.await(10, TimeUnit.SECONDS));
+        assertTrue(addObserverLatch.get(10, TimeUnit.SECONDS).size() == 1);
     }
 
     @Test
@@ -392,7 +398,7 @@ public class ProxyContextTest
         final TestCachingAtomicChangeObserver listener = new TestCachingAtomicChangeObserver();
         listener.latch = new CountDownLatch(2);
         assertTrue("Did not get response for subscription",
-            this.candidate.addObserver(listener, recordName).await(timeout, TimeUnit.SECONDS));
+            this.candidate.addObserver(listener, recordName).get(timeout, TimeUnit.SECONDS).size() == 1);
 
         // we must wait until we are sure the listener has been added
         assertTrue(recordSubscribedLatch.await(timeout, TimeUnit.SECONDS));
@@ -415,8 +421,40 @@ public class ProxyContextTest
         createComponents("testSingleRemoteContextSingleSubscription");
         CountDownLatch record1Latch = new CountDownLatch(UPDATE_COUNT);
         registerObserverForMap(this.candidate, record1, record1Latch);
+        
+        awaitLatch(record1Latch);
+    }
+
+    @Test
+    public void testSingleRemoteContextSingleSubscription_permission() throws Exception
+    {
+        createComponents("testSingleRemoteContextSingleSubscription_permission");
+
+        String name2 = "duff2";
+        String permissionToken = "pt_sdf2";
+        IPermissionFilter filter = Mockito.mock(IPermissionFilter.class);
+        when(filter.accept(eq(permissionToken), eq(record1))).thenReturn(true);
+        when(filter.accept(eq(permissionToken), eq(record2))).thenReturn(false);
+
+        this.context.setPermissionFilter(filter);
+
+        CountDownLatch record1Latch = new CountDownLatch(UPDATE_COUNT);
+        TestLongValueSequenceCheckingAtomicChangeObserver observer =
+            new TestLongValueSequenceCheckingAtomicChangeObserver();
+        observer.latch = record1Latch;
+        final Map<String, Boolean> result = this.candidate.addObserver(permissionToken, observer, record1, record2).get(5, TimeUnit.SECONDS);       
+        
+        assertEquals(2, result.size());
+        assertTrue("Got: " + result, result.get(record1));
+        assertFalse("Got: " + result, result.get(record2));
+
+        observers.add(observer);
 
         awaitLatch(record1Latch);
+       
+        Mockito.verify(filter).accept(eq(permissionToken), eq(record1));
+        Mockito.verify(filter).accept(eq(permissionToken), eq(record2));
+        verifyNoMoreInteractions(filter);
     }
 
     @Test

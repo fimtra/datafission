@@ -56,11 +56,15 @@ public interface ICodec<T>
     String getIdentityArgumentFromDecodedMessage(T decodedMessage);
 
     /**
-     * Get the names of the records to subscribe for in the command
+     * Get the names of the records to subscribe for in the command.
+     * <p>
+     * Note: the first item is the permission token
      * 
      * @param decodedMessage
      *            the decoded data for the subscribe command
-     * @return the names of the records in the subscribe command
+     * @return the names of the records in the subscribe command, <b>the first item in this list is
+     *         the permission token for the subscribe operation</b>
+     * @see IObserverContext#addObserver(String, IRecordListener, String...)
      */
     List<String> getSubscribeArgumentsFromDecodedMessage(T decodedMessage);
 
@@ -92,7 +96,12 @@ public interface ICodec<T>
     byte[] getTxMessageForIdentify(String proxyIdentity);
 
     /**
+     * @param names
+     *            the list of record names to subscribe for. <b>Note:</b> the first item is a
+     *            permission token.
+     * 
      * @return the message byte[] to send that represents a subscribe for the named records
+     * @see #getSubscribeArgumentsFromDecodedMessage(Object)
      */
     byte[] getTxMessageForSubscribe(String... names);
 

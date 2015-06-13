@@ -18,8 +18,8 @@ package com.fimtra.datafission.core;
 import java.util.Map;
 
 import com.fimtra.datafission.IObserverContext;
-import com.fimtra.datafission.IValue;
 import com.fimtra.datafission.IObserverContext.ISystemRecordNames;
+import com.fimtra.datafission.IValue;
 import com.fimtra.datafission.field.TextValue;
 
 /**

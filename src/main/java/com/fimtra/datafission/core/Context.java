@@ -17,6 +17,7 @@ package com.fimtra.datafission.core;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -26,12 +27,15 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.fimtra.datafission.IObserverContext;
+import com.fimtra.datafission.IPermissionFilter;
 import com.fimtra.datafission.IPublisherContext;
 import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordChange;
@@ -45,12 +49,12 @@ import com.fimtra.thimble.ICoalescingRunnable;
 import com.fimtra.thimble.ISequentialRunnable;
 import com.fimtra.thimble.ThimbleExecutor;
 import com.fimtra.util.DeadlockDetector;
+import com.fimtra.util.DeadlockDetector.DeadlockObserver;
+import com.fimtra.util.DeadlockDetector.ThreadInfoWrapper;
 import com.fimtra.util.Log;
 import com.fimtra.util.ObjectUtils;
 import com.fimtra.util.SubscriptionManager;
 import com.fimtra.util.SystemUtils;
-import com.fimtra.util.DeadlockDetector.DeadlockObserver;
-import com.fimtra.util.DeadlockDetector.ThreadInfoWrapper;
 
 /**
  * A context is the home for a group of records. The definition of the context is application
@@ -174,6 +178,9 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
      */
     final Set<String> recordsToRemoveFromSystemRecords;
     final String recordsToRemoveContext;
+    IPermissionFilter permissionFilter;
+    /** The permission token used for subscribing each record */
+    final Map<String, String> tokenPerRecord;
 
     /** Construct the context with the given name */
     public Context(String name)
@@ -219,6 +226,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
         this.recordImages = new ConcurrentHashMap<String, Record>(initialSize);
         this.records = new ConcurrentHashMap<String, IRecord>(initialSize);
         this.pendingAtomicChanges = new ConcurrentHashMap<String, AtomicChange>(initialSize);
+        this.tokenPerRecord = new ConcurrentHashMap<String, String>(initialSize);
 
         this.rpcInstances = new ConcurrentHashMap<String, IRpcInstance>();
         this.validators = new CopyOnWriteArraySet<IValidator>();
@@ -336,7 +344,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
         {
             Log.log(this, "Subscriber count is ", Integer.toString(subscribersForInstance.length),
                 " for created record '", name, "'");
-            
+
             record.getWriteLock().lock();
             try
             {
@@ -645,21 +653,47 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
     }
 
     @Override
-    public CountDownLatch addObserver(final IRecordListener observer, final String... recordNames)
+    public Future<Map<String, Boolean>> addObserver(final IRecordListener observer, final String... recordNames)
+    {
+        return addObserver(IPermissionFilter.DEFAULT_PERMISSION_TOKEN, observer, recordNames);
+    }
+
+    @Override
+    public Future<Map<String, Boolean>> addObserver(final String permissionToken, final IRecordListener observer,
+        final String... recordNames)
     {
         if (recordNames == null || recordNames.length == 0)
         {
             throw new IllegalArgumentException("Null or zero-length subscriptions " + Arrays.toString(recordNames));
         }
 
-        for (int i = 0; i < recordNames.length; i++)
+        final Map<String, Boolean> resultMap = new HashMap<String, Boolean>(recordNames.length);
+        final FutureTask<Map<String, Boolean>> futureResult = new FutureTask<Map<String, Boolean>>(new Runnable()
         {
-            doAddSingleObserver(recordNames[i], observer);
-        }
-        return new CountDownLatch(0);
+            @Override
+            public void run()
+            {
+                for (int i = 0; i < recordNames.length; i++)
+                {
+                    if (permissionTokenValidForRecord(permissionToken, recordNames[i]))
+                    {
+                        Context.this.tokenPerRecord.put(recordNames[i], permissionToken);
+                        doAddSingleObserver(recordNames[i], observer);
+                        resultMap.put(recordNames[i], Boolean.TRUE);
+                    }
+                    else
+                    {
+                        resultMap.put(recordNames[i], Boolean.FALSE);
+                    }
+                }
+            }
+        }, resultMap);
+
+        futureResult.run();
+        return futureResult;
     }
 
-    private void doAddSingleObserver(final String name, final IRecordListener observer)
+    void doAddSingleObserver(final String name, final IRecordListener observer)
     {
         final IRecord record = this.records.get(name);
         final Lock lock;
@@ -689,7 +723,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
                             final long start = System.nanoTime();
                             final ImmutableRecord imageToPublish = ImmutableRecord.liveImage(image);
                             observer.onChange(imageToPublish, new AtomicChange(imageToPublish));
-                            ContextUtils.measureTask(name, "record image-on-join", observer,
+                            ContextUtils.measureTask(name, "record image-on-subscribe", observer,
                                 (System.nanoTime() - start));
                         }
 
@@ -784,6 +818,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
                         if (count <= 0)
                         {
                             contextSubscriptions.remove(recordName);
+                            Context.this.tokenPerRecord.remove(recordName);
                         }
                         else
                         {
@@ -957,7 +992,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
     @Override
     public void resubscribe(String... recordNames)
     {
-        ContextUtils.resubscribeRecordsForContext(this, this.recordObservers, recordNames);
+        ContextUtils.resubscribeRecordsForContext(this, this.recordObservers, this.tokenPerRecord, recordNames);
     }
 
     /**
@@ -1078,6 +1113,25 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
     {
         this.sequences.get(recordName).set(sequence);
         getPendingAtomicChangesForWrite(recordName).setSequence(sequence);
+    }
+
+    final boolean permissionTokenValidForRecord(String permissionToken, String recordName)
+    {
+        if (ContextUtils.isSystemRecordName(recordName) || RpcInstance.isRpcResultRecord(recordName))
+        {
+            // no permission checks for system records or RPC result records
+            return true;
+        }
+        else
+        {
+            return this.permissionFilter == null ? true : this.permissionFilter.accept(permissionToken, recordName);
+        }
+    }
+
+    @Override
+    public void setPermissionFilter(IPermissionFilter filter)
+    {
+        this.permissionFilter = filter;
     }
 }
 
