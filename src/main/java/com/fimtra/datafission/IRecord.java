@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 
+import com.fimtra.datafission.core.ImmutableRecord;
+
 /**
  * A {@link Map} implementation that holds <code>String=IValue</code> entries.
  * <p>
@@ -154,11 +156,13 @@ public interface IRecord extends Map<String, IValue>
     Map<String, IValue> asFlattenedMap();
 
     /**
-	 * Get a read-only version of this record. Changes to the underlying record will not be seen by the
-	 * immutable instance.
-	 * 
-	 * @return an immutable instance that will reflect all current and future changes to this record
-	 */
+     * Get a read-only version of this record. Changes to the underlying record will STILL be seen
+     * by the immutable instance. The instance is just immutable so you cannot change its contents.
+     * <p>
+     * If you want a snapshot of a record then use {@link ImmutableRecord#snapshot(IRecord)}.
+     * 
+     * @return an immutable instance that will reflect all current and future changes to this record
+     */
     IRecord getImmutableInstance();
 
     /**
