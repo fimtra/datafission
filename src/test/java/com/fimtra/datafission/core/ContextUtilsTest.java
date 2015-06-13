@@ -35,12 +35,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.fimtra.datafission.IObserverContext;
+import com.fimtra.datafission.IPermissionFilter;
 import com.fimtra.datafission.IPublisherContext;
 import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordChange;
@@ -96,7 +98,7 @@ public class ContextUtilsTest
         assertTrue(ContextUtils.checkLegalCharacters("hello"));
         ContextUtils.checkLegalCharacters("hello $\\");
     }
-    
+
     @Test
     public void testFieldCopy()
     {
@@ -276,15 +278,16 @@ public class ContextUtilsTest
         recordSubscribers.addSubscriberFor(rec2, listener2);
 
         IObserverContext context = mock(IObserverContext.class);
-        ContextUtils.resubscribeRecordsForContext(context, recordSubscribers, rec1, rec2);
+        ContextUtils.resubscribeRecordsForContext(context, recordSubscribers, new ConcurrentHashMap<String, String>(),
+            rec2, rec1);
 
         verify(context).removeObserver(eq(listener1), eq(rec1));
         verify(context).removeObserver(eq(listener2), eq(rec1));
         verify(context).removeObserver(eq(listener2), eq(rec2));
 
-        verify(context).addObserver(eq(listener1), eq(rec1));
-        verify(context).addObserver(eq(listener2), eq(rec1));
-        verify(context).addObserver(eq(listener2), eq(rec2));
+        verify(context).addObserver(eq(IPermissionFilter.DEFAULT_PERMISSION_TOKEN), eq(listener1), eq(rec1));
+        verify(context).addObserver(eq(IPermissionFilter.DEFAULT_PERMISSION_TOKEN), eq(listener2), eq(rec1));
+        verify(context).addObserver(eq(IPermissionFilter.DEFAULT_PERMISSION_TOKEN), eq(listener2), eq(rec2));
     }
 
     @Test

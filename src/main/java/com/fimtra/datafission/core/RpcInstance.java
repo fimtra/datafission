@@ -54,8 +54,9 @@ import com.fimtra.util.Log;
 @SuppressWarnings("rawtypes")
 public final class RpcInstance implements IRpcInstance
 {
-    static final TextValue NO_ACK = TextValue.valueOf(Remote.Caller.RPC_RECORD_RESULT_PREFIX);
-
+    static final String RPC_RECORD_RESULT_PREFIX = "_RPC_";
+    static final TextValue NO_ACK = TextValue.valueOf(RPC_RECORD_RESULT_PREFIX);
+    
     /**
      * Handles the execution of the RPC.
      * <p>
@@ -217,14 +218,13 @@ public final class RpcInstance implements IRpcInstance
          */
         static class Caller implements IRpcExecutionHandler
         {
-            static final String RPC_RECORD_RESULT_PREFIX = "_RPC_";
             private final String rpcName;
             private final ICodec codec;
             private final ITransportChannel callReceiver;
             private final IPublisherContext context;
             private final AtomicReference<Long> remoteExecutionStartTimeoutMillis;
             private final AtomicReference<Long> remoteExecutionCompletedTimeoutMillis;
-           
+
             public Caller(String rpcName, ICodec codec, ITransportChannel callReceiver, IPublisherContext context,
                 AtomicReference<Long> remoteExecutionStartTimeoutMillis,
                 AtomicReference<Long> remoteExecutionCompletedTimeoutMillis)
@@ -421,6 +421,14 @@ public final class RpcInstance implements IRpcInstance
             return rpcInstance;
         }
         return null;
+    }
+
+    /**
+     * @return <code>true</code> if the record name is that of an RPC result
+     */
+    static boolean isRpcResultRecord(String name)
+    {
+        return name.startsWith(RPC_RECORD_RESULT_PREFIX, 0);
     }
 
     private static final String ARG_SEPARATOR = ",";

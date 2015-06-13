@@ -51,19 +51,18 @@ import com.fimtra.datafission.DataFissionProperties;
 import com.fimtra.datafission.DataFissionProperties.Values;
 import com.fimtra.datafission.ICodec;
 import com.fimtra.datafission.IObserverContext;
+import com.fimtra.datafission.IPermissionFilter;
 import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordChange;
 import com.fimtra.datafission.IRecordListener;
 import com.fimtra.datafission.IRpcInstance;
 import com.fimtra.datafission.IValue;
 import com.fimtra.datafission.core.IStatusAttribute.Connection;
-import com.fimtra.datafission.core.RpcInstance.Remote.Caller;
 import com.fimtra.datafission.field.TextValue;
 import com.fimtra.tcpchannel.TcpChannel;
 import com.fimtra.thimble.ISequentialRunnable;
 import com.fimtra.util.Log;
 import com.fimtra.util.ObjectUtils;
-import com.fimtra.util.Pair;
 import com.fimtra.util.StringUtils;
 import com.fimtra.util.SubscriptionManager;
 import com.fimtra.util.ThreadUtils;
@@ -109,7 +108,9 @@ import com.fimtra.util.ThreadUtils;
 @SuppressWarnings("rawtypes")
 public final class ProxyContext implements IObserverContext
 {
+    /** Acknowledges the successful completion of a subscription */
     static final String ACK = "_ACK_";
+    /** Signals that a subscription is not OK (failed due to permissions or already subscribed) */
     static final String NOK = "_NOK_";
     static final String SUBSCRIBE = "subscribe";
     static final String UNSUBSCRIBE = "unsubscribe";
@@ -273,6 +274,16 @@ public final class ProxyContext implements IObserverContext
         return records.toArray(new String[records.size()]);
     }
 
+    static String[] insertPermissionToken(final String permissionToken, final String[] recordsToSubscribeFor)
+    {
+        // insert the permission token
+        String[] permissionAndRecords = new String[recordsToSubscribeFor.length + 1];
+        System.arraycopy(recordsToSubscribeFor, 0, permissionAndRecords, 1, recordsToSubscribeFor.length);
+        permissionAndRecords[0] =
+            (permissionToken == null ? IPermissionFilter.DEFAULT_PERMISSION_TOKEN : permissionToken);
+        return permissionAndRecords;
+    }
+
     final Lock lock;
     volatile boolean active;
     volatile boolean connected;
@@ -305,16 +316,20 @@ public final class ProxyContext implements IObserverContext
      */
     final ConcurrentMap<String, List<CountDownLatch>> actionResponseLatches;
     /**
-     * When all responses for a subscribe action are received, the future in this map is triggered
+     * When all responses for a subscribe action are received, the future in this map is triggered.
      */
     final ConcurrentMap<CountDownLatch, RunnableFuture<?>> actionSubscribeFutures;
-    // TODO
+    /**
+     * Holds the subscribe results per subscribe action.
+     */
     final ConcurrentMap<CountDownLatch, Map<String, Boolean>> actionSubscribeResults;
 
     final AtomicChangeTeleporter teleportReceiver;
     final Map<String, Map<Long, IRecordChange>> cachedDeltas;
     /** Tracks when the image of a record is received (deltas consumed after this) */
     final Map<String, Boolean> imageReceived;
+    /** The permission token used for subscribing each record */
+    final Map<String, String> tokenPerRecord;
 
     /**
      * Construct the proxy context and connect it to a {@link Publisher} using the specified host
@@ -350,6 +365,12 @@ public final class ProxyContext implements IObserverContext
         this.cachedDeltas = new ConcurrentHashMap<String, Map<Long, IRecordChange>>();
         this.teleportReceiver = new AtomicChangeTeleporter(0);
         this.imageReceived = new ConcurrentHashMap<String, Boolean>();
+        this.tokenPerRecord = new ConcurrentHashMap<String, String>();
+        // add default permissions for system records
+        for (String recordName : ContextUtils.SYSTEM_RECORDS)
+        {
+            this.tokenPerRecord.put(recordName, IPermissionFilter.DEFAULT_PERMISSION_TOKEN);
+        }
 
         this.remoteConnectionStatusRecord = this.context.createRecord(RECORD_CONNECTION_STATUS_NAME);
         this.context.createRecord(IRemoteSystemRecordNames.REMOTE_CONTEXT_RPCS);
@@ -490,7 +511,7 @@ public final class ProxyContext implements IObserverContext
         this.lock.lock();
         try
         {
-            ContextUtils.resubscribeRecordsForContext(this, this.context.recordObservers, recordNames);
+            ContextUtils.resubscribeRecordsForContext(this, this.context.recordObservers, this.tokenPerRecord, recordNames);
         }
         finally
         {
@@ -506,6 +527,13 @@ public final class ProxyContext implements IObserverContext
 
     @Override
     public Future<Map<String, Boolean>> addObserver(IRecordListener observer, String... recordNames)
+    {
+        return addObserver(IPermissionFilter.DEFAULT_PERMISSION_TOKEN, observer, recordNames);
+    }
+
+    @Override
+    public Future<Map<String, Boolean>> addObserver(final String permissionToken, IRecordListener observer,
+        String... recordNames)
     {
         final Map<String, Boolean> subscribeResults = new HashMap<String, Boolean>(recordNames.length);
 
@@ -529,6 +557,13 @@ public final class ProxyContext implements IObserverContext
             // same remote record
             this.context.addObserver(observer, recordNames);
 
+            // store the token used for the record incase a reconnect happens and we need to
+            // re-subscribe
+            for (String recordName : recordsToSubscribeFor)
+            {
+                this.tokenPerRecord.put(recordName, permissionToken);
+            }
+
             if (recordsToSubscribeFor.length > 0)
             {
                 final Runnable task;
@@ -540,7 +575,7 @@ public final class ProxyContext implements IObserverContext
                         @Override
                         public void run()
                         {
-                            subscribe(recordsToSubscribeFor);
+                            subscribe(permissionToken, recordsToSubscribeFor);
                         }
                     };
                 }
@@ -564,6 +599,7 @@ public final class ProxyContext implements IObserverContext
             this.lock.unlock();
         }
         return futureResult;
+
     }
 
     @Override
@@ -603,9 +639,7 @@ public final class ProxyContext implements IObserverContext
                             }
                         }
                     };
-                    latch = executeTask(recordsToUnsubscribe, UNSUBSCRIBE, task,
-                    // todo this is naff
-                        null, null);
+                    latch = executeTask(recordsToUnsubscribe, UNSUBSCRIBE, task, null, null);
                 }
 
                 // remove the records that are no longer subscribed
@@ -620,6 +654,7 @@ public final class ProxyContext implements IObserverContext
                     if (!ContextUtils.isSystemRecordName(recordName))
                     {
                         this.context.removeRecord(recordName);
+                        this.tokenPerRecord.remove(recordName);
                     }
                 }
             }
@@ -771,7 +806,7 @@ public final class ProxyContext implements IObserverContext
                         {
                             recordNamesToSubscribeFor[i++] = (substituteRemoteNameWithLocalName(recordName));
                         }
-                        subscribe(recordNamesToSubscribeFor);
+                        doResubscribe(recordNamesToSubscribeFor);
                     }
 
                     ProxyContext.this.connected = true;
@@ -805,7 +840,7 @@ public final class ProxyContext implements IObserverContext
         {
             Log.log(this, "(<-) ", changeName);
 
-            final Boolean subscribeOk = Boolean.valueOf(changeName.startsWith(ACK, 0));
+            final Boolean subscribeResult = Boolean.valueOf(changeName.startsWith(ACK, 0));
 
             final int startOfRecordNames = changeName.indexOf(ACK_ACTION_ARGS_START);
             final List<String> recordNames =
@@ -826,8 +861,8 @@ public final class ProxyContext implements IObserverContext
                             latch.countDown();
                             if (action.equals(SUBSCRIBE))
                             {
-                                this.actionSubscribeResults.get(latch).put(recordName, subscribeOk);
-                                // todo this is UGLY
+                                this.actionSubscribeResults.get(latch).put(recordName, subscribeResult);
+                                // if all responses have been received...
                                 if (latch.getCount() == 0)
                                 {
                                     this.actionSubscribeResults.remove(latch);
@@ -842,7 +877,7 @@ public final class ProxyContext implements IObserverContext
             return;
         }
 
-        if (changeName.startsWith(Caller.RPC_RECORD_RESULT_PREFIX, 0))
+        if (changeName.startsWith(RpcInstance.RPC_RECORD_RESULT_PREFIX, 0))
         {
             // RPC results must be handled by a dedicated thread
             this.context.executeRpcTask(new ISequentialRunnable()
@@ -1038,7 +1073,8 @@ public final class ProxyContext implements IObserverContext
             Log.log(this, "Re-syncing ", name);
             final String[] recordNames = new String[] { substituteRemoteNameWithLocalName(name) };
             ProxyContext.this.channel.sendAsync(ProxyContext.this.codec.getTxMessageForUnsubscribe(recordNames));
-            ProxyContext.this.channel.sendAsync(ProxyContext.this.codec.getTxMessageForSubscribe(recordNames));
+            ProxyContext.this.channel.sendAsync(ProxyContext.this.codec.getTxMessageForSubscribe(insertPermissionToken(
+                this.tokenPerRecord.get(name), recordNames)));
         }
     }
 
@@ -1316,7 +1352,7 @@ public final class ProxyContext implements IObserverContext
         this.context.executeSequentialCoreTask(sequentialRunnable);
     }
 
-    void subscribe(final String[] recordsToSubscribeFor)
+    void subscribe(final String permissionToken, final String[] recordsToSubscribeFor)
     {
         if (ProxyContext.this.channel instanceof ISubscribingChannel)
         {
@@ -1325,6 +1361,40 @@ public final class ProxyContext implements IObserverContext
                 ((ISubscribingChannel) ProxyContext.this.channel).contextSubscribed(recordsToSubscribeFor[i]);
             }
         }
-        ProxyContext.this.channel.sendAsync(ProxyContext.this.codec.getTxMessageForSubscribe(recordsToSubscribeFor));
+        ProxyContext.this.channel.sendAsync(ProxyContext.this.codec.getTxMessageForSubscribe(insertPermissionToken(
+            permissionToken, recordsToSubscribeFor)));
+    }
+
+    void doResubscribe(final String[] recordNamesToSubscribeFor)
+    {
+        final Map<String, List<String>> recordsPerToken = new HashMap<String, List<String>>();
+        String token = null;
+        List<String> records;
+
+        {
+            String recordName;
+            for (int i = 0; i < recordNamesToSubscribeFor.length; i++)
+            {
+                recordName = recordNamesToSubscribeFor[i];
+                token = this.tokenPerRecord.get(recordName);
+                records = recordsPerToken.get(token);
+                if (records == null)
+                {
+                    records = new ArrayList<String>();
+                    recordsPerToken.put(token, records);
+                }
+                records.add(recordName);
+            }
+        }
+
+        Map.Entry<String, List<String>> entry = null;
+        for (Iterator<Map.Entry<String, List<String>>> it = recordsPerToken.entrySet().iterator(); it.hasNext();)
+        {
+            entry = it.next();
+            token = entry.getKey();
+            records = entry.getValue();
+            subscribe(token, records.toArray(new String[records.size()]));
+        }
+
     }
 }

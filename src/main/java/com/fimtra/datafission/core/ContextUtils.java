@@ -39,6 +39,7 @@ import com.fimtra.datafission.DataFissionProperties;
 import com.fimtra.datafission.DataFissionProperties.Values;
 import com.fimtra.datafission.IObserverContext;
 import com.fimtra.datafission.IObserverContext.ISystemRecordNames;
+import com.fimtra.datafission.IPermissionFilter;
 import com.fimtra.datafission.IPublisherContext;
 import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordChange;
@@ -430,7 +431,7 @@ public class ContextUtils
      *             if there are any illegal characters in the name
      */
     public static boolean checkLegalCharacters(String name)
-    {       
+    {
         final char[] charArray = name.toCharArray();
         for (int i = 0; i < charArray.length; i++)
         {
@@ -581,7 +582,8 @@ public class ContextUtils
      * Does the logic to handle executions of {@link IObserverContext#resubscribe(String...)}
      */
     static void resubscribeRecordsForContext(IObserverContext context,
-        final SubscriptionManager<String, IRecordListener> recordSubscribers, String... recordNames)
+        final SubscriptionManager<String, IRecordListener> recordSubscribers, Map<String, String> tokenPerRecord,
+        String... recordNames)
     {
         Map<String, IRecordListener[]> subscribers = new HashMap<String, IRecordListener[]>(recordNames.length);
         // remove all subscribers from these records
@@ -597,13 +599,15 @@ public class ContextUtils
             }
         }
         // now re-subscribe
+        String permissionToken = null;
         for (String recordName : recordNames)
         {
+            permissionToken = tokenPerRecord.get(recordName);
+            permissionToken = permissionToken == null ? IPermissionFilter.DEFAULT_PERMISSION_TOKEN : permissionToken;
             subscribersFor = subscribers.get(recordName);
             for (i = 0; i < subscribersFor.length; i++)
             {
-                // todo watch out that this isnt a back-door to get around permissioning
-                context.addObserver(subscribersFor[i], recordName);
+                context.addObserver(permissionToken, subscribersFor[i], recordName);
             }
         }
     }

@@ -210,7 +210,10 @@ public interface IObserverContext
 
     /**
      * This un-subscribes all {@link IRecordListener} instances from the named records then
-     * re-subscribes them. This will re-trigger a full image to all observers of the record(s)
+     * re-subscribes them. This will re-trigger a full image to all observers of the record(s).
+     * <p>
+     * Note that this will use the latest successful permission token per record as given in
+     * {@link #addObserver(String, IRecordListener, String...)}.
      * 
      * @param recordNames
      *            the names of the records to un-subscribe and re-subscribe for
@@ -219,29 +222,65 @@ public interface IObserverContext
 
     /**
      * Add an observer that will be notified when entries to the named record(s) are added/updated
-     * and removed.
+     * and removed. To be added as an observer, the permission token for the record must be valid.
      * <p>
      * On adding the observer, it will be notified with the current image of the record.
      * <p>
      * This is an idempotent operation.
+     * <p>
+     * This operation uses a permission token of {@link IPermissionFilter#DEFAULT_PERMISSION_TOKEN}.
      * 
      * @param observer
      *            the observer to add
      * @param recordNames
      *            the names of the records to observe
      * @return a future triggered when all records have been processed. The map contains a boolean
-     *         result for each recordname to indicate if the record is being observed or not.
+     *         result for each record name to indicate if the record is being observed or not. A
+     *         <code>false</code> result for a record name means it is not being observed and this
+     *         is due to the {@link IPublisherContext} having determined that the permission token
+     *         is not valid for the record name.
+     * @see #addObserver(String, IRecordListener, String...)
      */
     Future<Map<String, Boolean>> addObserver(IRecordListener observer, String... recordNames);
 
     /**
+     * Add an observer that will be notified when entries to the named record(s) are added/updated
+     * and removed. To be added as an observer, the permission token for the record must be valid.
+     * <p>
+     * On adding the observer, it will be notified with the current image of the record.
+     * <p>
+     * This is an idempotent operation.
+     * <p>
+     * This operation passes in a permission token to use. The {@link IPublisherContext} that
+     * handles the registration can examine the token to determine if the observer has correct
+     * permissions to receive the record changes.
+     * 
+     * @param permissionToken
+     *            a token representing the permission to use for the operation
+     * @param observer
+     *            the observer to add
+     * @param recordNames
+     *            the names of the records to observe
+     * @return a future triggered when all records have been processed. The map contains a boolean
+     *         result for each record name to indicate if the record is being observed or not. A
+     *         <code>false</code> result for a record name means it is not being observed and this
+     *         is due to the {@link IPublisherContext} having determined that the permission token
+     *         is not valid for the record name.
+     * @see IPermissionFilter
+     */
+    Future<Map<String, Boolean>> addObserver(String permissionToken, IRecordListener observer, String... recordNames);
+
+    /**
      * Remove the observer from the named record(s).
+     * <p>
+     * Note that unlike {@link #addObserver(IRecordListener, String...)}, removing observers has no
+     * permission check associated with it.
      * 
      * @param observer
      *            the observer to remove
      * @param recordNames
      *            the names of the records
-     * @return a latch triggered when the listener is removed from all records
+     * @return a latch triggered when the listener is removed from all records.
      */
     CountDownLatch removeObserver(IRecordListener observer, String... recordNames);
 

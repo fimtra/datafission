@@ -15,6 +15,7 @@
  */
 package com.fimtra.datafission.core;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,13 +35,13 @@ import com.fimtra.channel.IReceiver;
 import com.fimtra.channel.ITransportChannel;
 import com.fimtra.datafission.DataFissionProperties;
 import com.fimtra.datafission.ICodec;
+import com.fimtra.datafission.ICodec.CommandEnum;
+import com.fimtra.datafission.IObserverContext.ISystemRecordNames;
+import com.fimtra.datafission.IObserverContext.ISystemRecordNames.IContextConnectionsRecordFields;
 import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordChange;
 import com.fimtra.datafission.IRecordListener;
 import com.fimtra.datafission.IValue;
-import com.fimtra.datafission.ICodec.CommandEnum;
-import com.fimtra.datafission.IObserverContext.ISystemRecordNames;
-import com.fimtra.datafission.IObserverContext.ISystemRecordNames.IContextConnectionsRecordFields;
 import com.fimtra.datafission.field.DoubleValue;
 import com.fimtra.datafission.field.LongValue;
 import com.fimtra.datafission.field.TextValue;
@@ -136,7 +137,8 @@ public class Publisher
             }
         }
 
-        void addSubscriberFor(final String name, final ProxyContextPublisher publisher)
+        void addSubscriberFor(final String name, final ProxyContextPublisher publisher, final String permissionToken,
+            final List<String> ackSubscribes, final List<String> nokSubscribes, final Runnable task)
         {
             Publisher.this.context.executeSequentialCoreTask(new ISequentialRunnable()
             {
@@ -150,27 +152,69 @@ public class Publisher
                         {
                             if (ProxyContextMultiplexer.this.subscribers.getSubscribersFor(name).length == 1)
                             {
-                                // this will call addDeltaToSubscriptionCount and publish the image
-                                Publisher.this.context.addObserver(ProxyContextMultiplexer.this, name);
+                                try
+                                {
+                                    // this will call addDeltaToSubscriptionCount and publish the
+                                    // image
+                                    if (Publisher.this.context.addObserver(permissionToken,
+                                        ProxyContextMultiplexer.this, name).get().get(name).booleanValue())
+                                    {
+                                        ackSubscribes.add(name);
+                                    }
+                                    else
+                                    {
+                                        nokSubscribes.add(name);
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    Log.log(Publisher.this.context,
+                                        "Could not get result from addObserver call for permissionToken="
+                                            + permissionToken + ", recordName=" + name, e);
+                                    nokSubscribes.add(name);
+                                }
                             }
                             else
                             {
-                                Publisher.this.context.addDeltaToSubscriptionCount(name, 1);
-
-                                // we must send an initial image to the new client if it is not the
-                                // first one to register
-                                final IRecord record = Publisher.this.context.getLastPublishedImage(name);
-                                if (record != null)
+                                try
                                 {
-                                    final AtomicChange[] parts =
-                                        ProxyContextMultiplexer.this.teleporter.split(new AtomicChange(record));
-                                    for (int i = 0; i < parts.length; i++)
+                                    if (Publisher.this.context.permissionTokenValidForRecord(permissionToken, name))
                                     {
-                                        publisher.publish(publisher.codec.getTxMessageForAtomicChange(parts[i]), true);
+                                        Publisher.this.context.addDeltaToSubscriptionCount(name, 1);
+
+                                        // we must send an initial image to the new client if it is
+                                        // not the first one to register
+                                        final IRecord record = Publisher.this.context.getLastPublishedImage(name);
+                                        if (record != null)
+                                        {
+                                            final AtomicChange[] parts =
+                                                ProxyContextMultiplexer.this.teleporter.split(new AtomicChange(record));
+                                            for (int i = 0; i < parts.length; i++)
+                                            {
+                                                publisher.publish(
+                                                    publisher.codec.getTxMessageForAtomicChange(parts[i]), true);
+                                            }
+                                        }
+                                        ackSubscribes.add(name);
                                     }
+                                    else
+                                    {
+                                        nokSubscribes.add(name);
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    Log.log(Publisher.this.context, "Could not add subscriber for permissionToken="
+                                        + permissionToken + ", recordName=" + name, e);
+                                    nokSubscribes.add(name);
                                 }
                             }
                         }
+                        else
+                        {
+                            nokSubscribes.add(name);
+                        }
+                        task.run();
                     }
                     finally
                     {
@@ -308,12 +352,14 @@ public class Publisher
             this.messagesPublished++;
         }
 
-        void subscribe(String name)
+        void subscribe(String name, String permissionToken, List<String> ackSubscribes, List<String> nokSubscribes,
+            Runnable task)
         {
             try
             {
                 this.subscriptions.add(name);
-                Publisher.this.multiplexer.addSubscriberFor(name, this);
+                Publisher.this.multiplexer.addSubscriberFor(name, this, permissionToken, ackSubscribes, nokSubscribes,
+                    task);
             }
             catch (Exception e)
             {
@@ -636,21 +682,48 @@ public class Publisher
         sendAck(recordNames, client, proxyContextPublisher, ProxyContext.UNSUBSCRIBE);
     }
 
-    void subscribe(List<String> recordNames, ITransportChannel client)
+    void subscribe(final List<String> recordNames, final ITransportChannel client)
     {
-        ProxyContextPublisher proxyContextPublisher = getProxyContextPublisher(client);
+        // the first item is always the permission token
+        final String permissionToken = recordNames.remove(0);
+        final ProxyContextPublisher proxyContextPublisher = getProxyContextPublisher(client);
+        final List<String> ackSubscribes = new ArrayList<String>(recordNames.size());
+        final List<String> nokSubscribes = new ArrayList<String>(recordNames.size());
+
         for (String name : recordNames)
         {
-            proxyContextPublisher.subscribe(name);
+            proxyContextPublisher.subscribe(name, permissionToken, ackSubscribes, nokSubscribes, new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    if (ackSubscribes.size() + nokSubscribes.size() == recordNames.size())
+                    {
+                        sendAck(ackSubscribes, client, proxyContextPublisher, ProxyContext.SUBSCRIBE);
+                        sendNok(nokSubscribes, client, proxyContextPublisher, ProxyContext.SUBSCRIBE);
+                    }
+                }
+            });
         }
-        sendAck(recordNames, client, proxyContextPublisher, ProxyContext.SUBSCRIBE);
     }
 
     void sendAck(List<String> recordNames, ITransportChannel client, ProxyContextPublisher proxyContextPublisher,
         String responseAction)
     {
+        sendSubscribeResult(ProxyContext.ACK, recordNames, client, proxyContextPublisher, responseAction);
+    }
+
+    void sendNok(List<String> recordNames, ITransportChannel client, ProxyContextPublisher proxyContextPublisher,
+        String responseAction)
+    {
+        sendSubscribeResult(ProxyContext.NOK, recordNames, client, proxyContextPublisher, responseAction);
+    }
+
+    private static void sendSubscribeResult(String action, List<String> recordNames, ITransportChannel client,
+        ProxyContextPublisher proxyContextPublisher, String responseAction)
+    {
         final StringBuilder sb = new StringBuilder(recordNames.size() * 30);
-        sb.append(ProxyContext.ACK).append(responseAction).append(ProxyContext.ACK_ACTION_ARGS_START).append(
+        sb.append(action).append(responseAction).append(ProxyContext.ACK_ACTION_ARGS_START).append(
             StringUtils.join(recordNames, ProxyContext.ACK_ARGS_DELIMITER));
         final IRecordChange atomicChange =
             new AtomicChange(sb.toString(), ContextUtils.EMPTY_MAP, ContextUtils.EMPTY_MAP, ContextUtils.EMPTY_MAP);

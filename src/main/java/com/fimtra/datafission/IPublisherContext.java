@@ -139,4 +139,14 @@ public interface IPublisherContext extends IObserverContext
      *         was not found
      */
     boolean removeValidator(IValidator validator);
+
+    /**
+     * Set the permission filter for this context. All subscriptions via
+     * {@link #addObserver(String, IRecordListener, String...)} are passed through the filter to see
+     * if the permission token is valid for the record(s) being subscribed for.
+     * 
+     * @param filter
+     *            the filter to set, <code>null</code> to use the default "pass all" filter
+     */
+    void setPermissionFilter(IPermissionFilter filter);
 }
