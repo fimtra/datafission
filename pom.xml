@@ -279,6 +279,21 @@
 			<build>
 				<plugins>
 					<plugin>
+						<artifactId>maven-jar-plugin</artifactId>
+						<version>${plugins.jar.version}</version>
+						<executions>
+							<execution>
+								<phase>package</phase>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+								<configuration>
+									<classifier>java6</classifier>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
 						<artifactId>maven-compiler-plugin</artifactId>
 						<version>${plugins.compiler.version}</version>
 						<configuration>
