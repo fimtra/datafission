@@ -138,6 +138,45 @@ public abstract class Log
         }
     }
 
+    public static void log(Object source, String message1, String message2, String message3, String message4)
+    {
+        lock.lock();
+        try
+        {
+            println(getLogMessage(source, message1, message2, message3, message4));
+        }
+        finally
+        {
+            lock.unlock();
+        }
+    }
+
+    public static void log(Object source, String message1, String message2, String message3)
+    {
+        lock.lock();
+        try
+        {
+            println(getLogMessage(source, message1, message2, message3));
+        }
+        finally
+        {
+            lock.unlock();
+        }
+    }
+
+    public static void log(Object source, String message1, String message2)
+    {
+        lock.lock();
+        try
+        {
+            println(getLogMessage(source, message1, message2));
+        }
+        finally
+        {
+            lock.unlock();
+        }
+    }
+
     public static void log(Object source, String message)
     {
         lock.lock();
@@ -184,6 +223,38 @@ public abstract class Log
         {
             sb.append(messages[i]);
         }
+        return sb.toString();
+    }
+
+    private static String getLogMessage(Object source, String message1, String message2, String message3,
+        String message4)
+    {
+        StringBuilder sb = new StringBuilder(256);
+        sb.append(fastDateFormat.yyyyMMddHHmmssSSS(System.currentTimeMillis())).append(TAB).append(
+            Thread.currentThread().getName()).append(TAB).append(
+            source instanceof Class ? ((Class<?>) source).getName() : source.getClass().getName()).append(":").append(
+            System.identityHashCode(source)).append(TAB).append(message1).append(message2).append(message3).append(
+            message4);
+        return sb.toString();
+    }
+
+    private static String getLogMessage(Object source, String message1, String message2, String message3)
+    {
+        StringBuilder sb = new StringBuilder(256);
+        sb.append(fastDateFormat.yyyyMMddHHmmssSSS(System.currentTimeMillis())).append(TAB).append(
+            Thread.currentThread().getName()).append(TAB).append(
+            source instanceof Class ? ((Class<?>) source).getName() : source.getClass().getName()).append(":").append(
+            System.identityHashCode(source)).append(TAB).append(message1).append(message2).append(message3);
+        return sb.toString();
+    }
+
+    private static String getLogMessage(Object source, String message1, String message2)
+    {
+        StringBuilder sb = new StringBuilder(256);
+        sb.append(fastDateFormat.yyyyMMddHHmmssSSS(System.currentTimeMillis())).append(TAB).append(
+            Thread.currentThread().getName()).append(TAB).append(
+            source instanceof Class ? ((Class<?>) source).getName() : source.getClass().getName()).append(":").append(
+            System.identityHashCode(source)).append(TAB).append(message1).append(message2);
         return sb.toString();
     }
 
