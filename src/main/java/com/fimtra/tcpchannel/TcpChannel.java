@@ -310,12 +310,17 @@ public class TcpChannel implements ITransportChannel
     {
         try
         {
-            if (this.socketChannel.read(this.rxFrames) == -1)
+            final int readCount = this.socketChannel.read(this.rxFrames);
+            switch(readCount)
             {
-                destroy("End-of-stream reached");
-                return;
+                case -1:
+                    destroy("End-of-stream reached");
+                    return;
+                case 0:
+                    return;
+                default :
+                    this.rxData++;
             }
-            this.rxData++;
             final List<byte[]> readFrames = this.readerWriter.readFrames();
             final List<byte[]> resolvedFrames = new ArrayList<byte[]>(readFrames.size());
             byte[] data = null;

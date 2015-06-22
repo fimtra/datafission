@@ -58,7 +58,8 @@ public interface ITransportChannel
     String getDescription();
 
     /**
-     * Used primarily for watchdog purposes.
+     * Used primarily for watchdog purposes. Calling this should reset any flags tracking whether
+     * data has been received.
      * 
      * @see ChannelWatchdog
      * @return <code>true</code> if the channel has received data since the last call to this
