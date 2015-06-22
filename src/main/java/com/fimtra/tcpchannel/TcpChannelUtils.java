@@ -309,12 +309,13 @@ public abstract class TcpChannelUtils
     static List<byte[]> decodeUsingTerminator(ByteBuffer buffer, byte[] terminator) throws BufferOverflowException
     {
         buffer.flip();
-        List<byte[]> values = new LinkedList<byte[]>();
+        final List<byte[]> values = new LinkedList<byte[]>();
         final byte[] bufferArray = buffer.array();
         int[] terminatorIndex = new int[2];
         int terminatorIndexPtr = 0;
         final int limit = buffer.limit();
-        for (int i = 0; i < limit; i++)
+        int i = 0;
+        for (i = 0; i < limit; i++)
         {
             if (bufferArray[i] == terminator[0] && (i + 1 < limit) && bufferArray[i + 1] == terminator[1])
             {
@@ -333,7 +334,7 @@ public abstract class TcpChannelUtils
             int len;
             int lastTerminatorIndex = 0;
             byte[] frame;
-            for (int i = 0; i < terminatorIndexPtr; i++)
+            for (i = 0; i < terminatorIndexPtr; i++)
             {
                 len = terminatorIndex[i] - lastTerminatorIndex;
                 frame = new byte[len];
