@@ -71,9 +71,9 @@ public interface IObserverContext
          * VALUE=LongValue holding number of subscriptions for the record
          * </pre>
          * 
-         * The 'context records' is a system record in an observer context that lists all record
-         * names in the context. The record keys are the record names in the context. The record
-         * value shows how many subscribers exist for the record.
+         * The 'context records' is a system record that lists all record names in the context. The
+         * record keys are the record names in the context. The record value shows how many
+         * subscribers exist for the record.
          * <p>
          * Keeping track of the subscribers for the record here is different to what the
          * {@link #CONTEXT_SUBSCRIPTIONS} does; the 'context subscriptions' shows the subscriptions
@@ -95,11 +95,11 @@ public interface IObserverContext
          * VALUE=LongValue holding number of subscriptions
          * </pre>
          * 
-         * The 'context subscriptions' is a system record in an observer context that tracks which
-         * records have subscriptions. A subscription may exist before a record is created. The
-         * record keys are the names of records that have subscriptions. The record values hold the
-         * number of subscriptions for the record. <b>If a record no longer has subscriptions, its
-         * name will be removed from the context subscriptions.</b>
+         * The 'context subscriptions' is a system record that tracks which records have
+         * subscriptions. A subscription may exist before a record is created. The record keys are
+         * the names of records that have subscriptions. The record values hold the number of
+         * subscriptions for the record. <b>If a record no longer has subscriptions, its name will
+         * be removed from the context subscriptions.</b>
          * <p>
          * As observers are added to the context (via
          * {@link #addObserver(IRecordListener, String...)}) entries will appear in this record.
@@ -111,8 +111,7 @@ public interface IObserverContext
         String CONTEXT_SUBSCRIPTIONS = CONTEXT + "Subscriptions";
 
         /**
-         * The 'context status' is a system record in an observer context that lists status
-         * attributes of the context.
+         * The 'context status' is a system record that lists status attributes of the context.
          * <p>
          * Use {@link #getRecord(String)} to obtain the context status using this string.
          * 
@@ -128,8 +127,7 @@ public interface IObserverContext
          * VALUE=args{comma separated list of IValue.TypeEnum for each argument},returns{IValue.TypeEnum for the return type}
          * </pre>
          * 
-         * The 'context RPCs' is a system record in an observer context that lists all available
-         * RPCs in the context.
+         * The 'context RPCs' is a system record that lists all available RPCs.
          * <p>
          * Use {@link #getRpc(String)} to obtain the context RPCs using this string.
          * 
@@ -145,8 +143,8 @@ public interface IObserverContext
         String CONTEXT_RPCS = CONTEXT + "Rpcs";
 
         /**
-         * The 'context connections' is a system record in an observer context that lists the
-         * connections the context has to remote proxies. Record structure:
+         * The 'context connections' is a system record that lists the connections to remote
+         * observers. Record structure:
          * 
          * <pre>
          * KEY=remote connection name
