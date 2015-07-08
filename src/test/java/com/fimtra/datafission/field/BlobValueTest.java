@@ -34,15 +34,14 @@ import com.fimtra.datafission.field.BlobValue;
 public class BlobValueTest
 {
 
-    private static final String _1AF3416 = "1a0f3416";
+    private static final String _1AF3416 = "1a0f34160a0b0c0d0e0f";
     BlobValue candidate;
-    byte[] bytes = new byte[] { 0x1a, 0xf, 0x34, 0x16 };
+    byte[] bytes = new byte[] { 0x1a, 0xf, 0x34, 0x16, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f };
 
     @Before
     public void setUp() throws Exception
     {
         this.candidate = new BlobValue(this.bytes);
-        // candidate = new BlobValue("a);sldkfnjmq;sloedj;lwkejr;oai3wjr;lakejfs;lj!".getBytes());
     }
 
     @Test
@@ -71,6 +70,14 @@ public class BlobValueTest
     }
 
     @Test
+    public void testFromStringCapitals()
+    {
+        final BlobValue other = new BlobValue();
+        other.fromString("1a0f34160A0B0C0D0E0F");
+        assertEquals(other, this.candidate);
+    }
+
+    @Test
     public void testFromChar()
     {
         final BlobValue other = new BlobValue();
@@ -88,13 +95,13 @@ public class BlobValueTest
     @Test
     public void testLongValue()
     {
-        assertEquals(4, this.candidate.longValue());
+        assertEquals(10, this.candidate.longValue());
     }
 
     @Test
     public void testDoubleValue()
     {
-        assertEquals(4, this.candidate.doubleValue(), 1.0);
+        assertEquals(10.0, this.candidate.doubleValue(), 1.0);
     }
 
     @Test

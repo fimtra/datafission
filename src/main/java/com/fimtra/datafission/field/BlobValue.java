@@ -170,6 +170,18 @@ public final class BlobValue extends AbstractValue
                 return 0xe;
             case 'f':
                 return 0xf;
+            case 'A':
+                return 0xa;
+            case 'B':
+                return 0xb;
+            case 'C':
+                return 0xc;
+            case 'D':
+                return 0xd;
+            case 'E':
+                return 0xe;
+            case 'F':
+                return 0xf;                
         }
         throw new IllegalArgumentException("Unhandled char:" + c);
     }
