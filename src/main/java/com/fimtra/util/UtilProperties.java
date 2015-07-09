@@ -38,9 +38,9 @@ public abstract class UtilProperties
 
         /**
          * The system property key that defines the log directory.<br>
-         * E.g. <code>-Dutil.log-dir=/path/to/log/directory</code>
+         * E.g. <code>-Dutil.logDir=/path/to/log/directory</code>
          */
-        String SYSTEM_PROPERTY_LOG_DIR = BASE + "log-dir";
+        String SYSTEM_PROPERTY_LOG_DIR = BASE + "logDir";
 
         /**
          * The system property name to define if log messages are written to std.err (in addition to
