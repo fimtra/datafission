@@ -49,6 +49,13 @@ public abstract class UtilProperties
          * E.g. <code>-Dutil.logToStdErr=true</code>
          */
         String LOG_TO_STDERR = BASE + "logToStdErr";
+
+        /**
+         * The system property name to define if the {@link LowGcLinkedList} should be used by
+         * {@link CollectionUtils#newLinkedList()}. <br>
+         * E.g. <code>-Dutil.useLowGcLinkedList=true</code>
+         */
+        String USE_LOW_GC_LINKEDLIST = BASE + "useLowGcLinkedList";
     }
 
     /**
@@ -71,6 +78,13 @@ public abstract class UtilProperties
          * @see Names#SYSTEM_PROPERTY_LOG_DIR
          */
         String LOG_DIR = System.getProperty(UtilProperties.Names.SYSTEM_PROPERTY_LOG_DIR, "logs");
+
+        /**
+         * Determines if the {@link LowGcLinkedList} is used. Default is <code>true</code>
+         * 
+         * @see Names#USE_LOW_GC_LINKEDLIST
+         */
+        boolean USE_LOW_GC_LINKEDLIST = Boolean.parseBoolean(System.getProperty(Names.USE_LOW_GC_LINKEDLIST, "true"));
     }
 
 }
