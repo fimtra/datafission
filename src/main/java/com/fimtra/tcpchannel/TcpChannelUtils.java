@@ -29,9 +29,8 @@ import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 import com.fimtra.channel.ChannelUtils;
 import com.fimtra.channel.IReceiver;
@@ -179,7 +178,7 @@ public abstract class TcpChannelUtils
         catch (UnknownHostException e)
         {
             throw new RuntimeException("Could not get host address", e);
-        }       
+        }
         LOCALHOST_IP = hostAddress;
     }
 
@@ -200,19 +199,19 @@ public abstract class TcpChannelUtils
      *  data = 1*OCTET ; the data
      * </pre>
      * 
+     * @param frames
+     *            the queue to place the decoded frames resolved from the buffer. Any incomplete
+     *            frames are left in the buffer.
      * @param buffer
      *            a bytebuffer holding any number of frames or <b>partial frames</b>
-     * @return the resolved complete data from the buffer. Any incomplete frames are left in the
-     *         buffer.
      * @throws BufferOverflowException
      *             if the buffer size cannot hold a complete frame
      */
-    static List<byte[]> decode(ByteBuffer buffer) throws BufferOverflowException
+    static void decode(Queue<byte[]> frames, ByteBuffer buffer) throws BufferOverflowException
     {
         buffer.flip();
         // the TCP message could be a concatenation of multiple ones
         // the format is: <4 bytes len><data><4 bytes len><data>
-        List<byte[]> values = new LinkedList<byte[]>();
         int len;
         byte[] message;
         int position;
@@ -239,7 +238,7 @@ public abstract class TcpChannelUtils
                         // need indicate the buffer is full.
                         final String overflowMessage =
                             "Need to read " + len + " but buffer has no more space from current position: "
-                                + buffer.toString() + ", read=" + asString(values) + ", buffer="
+                                + buffer.toString() + ", read=" + asString(frames) + ", buffer="
                                 + new String(buffer.array());
                         buffer.clear();
                         throw new BufferOverflowException(overflowMessage);
@@ -255,14 +254,13 @@ public abstract class TcpChannelUtils
                 message = new byte[len];
                 System.arraycopy(buffer.array(), position, message, 0, len);
                 buffer.position(position + len);
-                values.add(message);
+                frames.add(message);
             }
         }
         buffer.compact();
-        return values;
     }
 
-    private static String asString(List<byte[]> values)
+    private static String asString(Queue<byte[]> values)
     {
         StringBuilder sb = new StringBuilder();
         sb.append("[");
@@ -297,19 +295,20 @@ public abstract class TcpChannelUtils
      * terminator = OCTET OCTET ; an ASCII control code, possibly 0x3 for ETX (end of text)
      * </pre>
      * 
+     * @param frames
+     *            the queue to place the decoded frames resolved from the buffer. Any incomplete
+     *            frames are left in the buffer.
      * @param buffer
      *            a bytebuffer holding any number of frames or <b>partial frames</b>
      * @param terminator
      *            the byte sequence for the end of a frame
-     * @return the resolved complete data from the buffer. Any incomplete frames are left in the
-     *         buffer.
      * @throws BufferOverflowException
      *             if the buffer size cannot hold a complete frame
      */
-    static List<byte[]> decodeUsingTerminator(ByteBuffer buffer, byte[] terminator) throws BufferOverflowException
+    static void decodeUsingTerminator(Queue<byte[]> frames, ByteBuffer buffer, byte[] terminator)
+        throws BufferOverflowException
     {
         buffer.flip();
-        final List<byte[]> values = new LinkedList<byte[]>();
         final byte[] bufferArray = buffer.array();
         int[] terminatorIndex = new int[2];
         int terminatorIndexPtr = 0;
@@ -339,7 +338,7 @@ public abstract class TcpChannelUtils
                 len = terminatorIndex[i] - lastTerminatorIndex;
                 frame = new byte[len];
                 System.arraycopy(bufferArray, lastTerminatorIndex, frame, 0, len);
-                values.add(frame);
+                frames.add(frame);
                 lastTerminatorIndex = terminatorIndex[i] + terminator.length;
             }
             buffer.position(lastTerminatorIndex);
@@ -356,7 +355,6 @@ public abstract class TcpChannelUtils
             }
         }
         buffer.compact();
-        return values;
     }
 
     /**
