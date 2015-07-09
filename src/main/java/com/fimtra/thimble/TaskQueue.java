@@ -19,7 +19,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Queue;
@@ -29,6 +28,8 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import com.fimtra.util.CollectionUtils;
 
 /**
  * An unbounded queue that internally manages the order of {@link Runnable} tasks that are submitted
@@ -194,7 +195,7 @@ final class TaskQueue
         }
     }
 
-    final Queue<Runnable> queue = new LinkedList<Runnable>();
+    final Queue<Runnable> queue = CollectionUtils.newDeque();
     final Map<Object, SequentialTasks> sequentialTasksPerContext = new HashMap<Object, SequentialTasks>();
     final Map<Object, CoalescingTasks> coalescingTasksPerContext = new HashMap<Object, CoalescingTasks>();
     final Map<Object, TaskStatistics> sequentialTaskStatsPerContext = new ConcurrentHashMap<Object, TaskStatistics>();

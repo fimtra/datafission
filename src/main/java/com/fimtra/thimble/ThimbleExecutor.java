@@ -18,7 +18,6 @@ package com.fimtra.thimble;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -30,6 +29,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.fimtra.util.CollectionUtils;
 
 /**
  * A ThimbleExecutor is a multi-thread {@link Executor} implementation that supports sequential and
@@ -165,7 +166,7 @@ public final class ThimbleExecutor implements Executor
         this.name = name;
         this.size = size;
         this.stats = new TaskStatistics(this.name);
-        this.taskRunners = new LinkedList<TaskRunner>();
+        this.taskRunners = CollectionUtils.newDeque();
         this.taskQueue = new TaskQueue();
         for (int i = 0; i < size; i++)
         {
