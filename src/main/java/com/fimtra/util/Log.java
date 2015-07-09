@@ -304,14 +304,25 @@ public abstract class Log
      */
     public static void banner(Object source, String message)
     {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < message.length(); i++)
+        // note: use "\n" to cover unix "\n" and windows "\r\n"
+        final String[] elements = message.split("\n");
+        int len = elements[0].length();
+        int i = 0;
+        for(i = 0; i < elements.length; i++)
+        {
+            if(len < elements[i].length())
+            {
+                len = elements[i].length();
+            }
+        }
+        final StringBuilder sb = new StringBuilder(len);
+        for (i = 0; i < len; i++)
         {
             sb.append("=");
         }
-        String sbString = sb.toString();
-        Log.log(source, SystemUtils.lineSeparator(), sbString, SystemUtils.lineSeparator(), message,
-            SystemUtils.lineSeparator(), sbString);
+        final String surround = sb.toString();
+        Log.log(source, SystemUtils.lineSeparator(), surround, SystemUtils.lineSeparator(), message,
+            SystemUtils.lineSeparator(), surround);
     }
 
     static void flushMessages()
