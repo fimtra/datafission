@@ -217,7 +217,7 @@ public class TcpChannel implements ITransportChannel
 
         final Socket socket = this.socketChannel.socket();
         this.endPointSocketDescription = socket.getInetAddress().getHostAddress() + ":" + socket.getPort();
-        this.shortSocketDescription = socket.getLocalSocketAddress() + "->" + getEndPointDescription();
+        this.shortSocketDescription = socket.getLocalSocketAddress() + "<-" + getEndPointDescription();
 
         finishConstruction();
     }
