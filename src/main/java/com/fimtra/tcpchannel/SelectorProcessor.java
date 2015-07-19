@@ -23,7 +23,7 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
@@ -118,6 +118,9 @@ final class SelectorProcessor implements Runnable
     {
         try
         {
+            Iterator<SelectionKey> iterator;
+            Set<SelectionKey> selectedKeys;
+            SelectionKey selectionKey;
             while (this.processorActive)
             {
                 try
@@ -129,8 +132,6 @@ final class SelectorProcessor implements Runnable
                     }
                     this.registrationLatch.await();
 
-                    // take a thread-safe copy of the selected keys
-                    Set<SelectionKey> selectedKeys;
                     try
                     {
                         selectedKeys = this.selector.selectedKeys();
@@ -139,12 +140,10 @@ final class SelectorProcessor implements Runnable
                     {
                         return;
                     }
-                    synchronized (selectedKeys)
+                    iterator = selectedKeys.iterator();
+                    while (iterator.hasNext())
                     {
-                        selectedKeys = new HashSet<SelectionKey>(selectedKeys);
-                    }
-                    for (SelectionKey selectionKey : selectedKeys)
-                    {
+                        selectionKey = iterator.next();
                         try
                         {
                             ((Runnable) selectionKey.attachment()).run();
@@ -154,6 +153,7 @@ final class SelectorProcessor implements Runnable
                             Log.log(this, this + " could not process the Runnable for " + selectionKey.channel(), e);
                         }
                     }
+                    selectedKeys.clear();
                 }
                 catch (Exception e)
                 {
