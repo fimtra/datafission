@@ -77,7 +77,6 @@ final class SelectorProcessor implements Runnable
     {
         super();
         this.processorActive = true;
-        this.registrationLatch = new CountDownLatch(0);
         this.selectorProcessorOperation = operation;
         try
         {
@@ -130,8 +129,11 @@ final class SelectorProcessor implements Runnable
                     {
                         return;
                     }
-                    this.registrationLatch.await();
-
+                    if(this.registrationLatch != null)
+                    {
+                        this.registrationLatch.await();
+                    }
+                    
                     try
                     {
                         selectedKeys = this.selector.selectedKeys();
@@ -212,6 +214,7 @@ final class SelectorProcessor implements Runnable
         finally
         {
             this.registrationLatch.countDown();
+            this.registrationLatch = null;
         }
         return true;
     }
