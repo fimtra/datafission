@@ -161,9 +161,6 @@ public abstract class TcpChannelUtils
     final static SelectorProcessor ACCEPT_PROCESSOR = new SelectorProcessor("tcp-channel-accept",
         SelectionKey.OP_ACCEPT);
 
-    /** Constant for the loopback device IP address */
-    public final static String LOOPBACK = "127.0.0.1";
-
     /**
      * The public facing IP for the local host
      */
