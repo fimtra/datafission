@@ -39,7 +39,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 import com.fimtra.channel.ChannelUtils;
 import com.fimtra.channel.IReceiver;
@@ -58,6 +60,9 @@ import com.fimtra.util.Log;
 @SuppressWarnings({ "boxing", "unused", "unchecked" })
 public class TestTcpServer
 {
+    @Rule
+    public TestName name = new TestName();
+    
     public static class EchoReceiver implements IReceiver
     {
         final CountDownLatch channelClosedLatch = new CountDownLatch(1);
@@ -145,9 +150,10 @@ public class TestTcpServer
     @Before
     public void setUp() throws Exception
     {
+        System.err.println(this.name.getMethodName());
         PORT += 1;
         PORT = TcpChannelUtils.getNextFreeTcpServerPort(null, PORT, PORT + 100);
-        Log.log(this, "port=" + PORT);
+        Log.log(this, this.name.getMethodName() + ", port=" + PORT);
     }
 
     @After
