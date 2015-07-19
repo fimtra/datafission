@@ -40,7 +40,7 @@ public class BenchmarkSubscriber
         final ICodec<?> proxyCodec = new StringProtocolCodec();
         final TcpChannelBuilderFactory channelBuilderFactory =
             new TcpChannelBuilderFactory(proxyCodec.getFrameEncodingFormat(), new StaticEndPointAddressFactory(
-                new EndPointAddress(args.length == 0 ? TcpChannelUtils.LOOPBACK : args[0], 22222)));
+                new EndPointAddress(args.length == 0 ? TcpChannelUtils.LOCALHOST_IP : args[0], 22222)));
         final ProxyContext proxyContext = new ProxyContext("BenchmarkSubscriber", proxyCodec, channelBuilderFactory);
 
         ContextUtils.getRpc(proxyContext, 2000, "runComplete");

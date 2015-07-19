@@ -51,7 +51,7 @@ public class BenchmarkPublisher
 
         // enable remote access to the context, this opens a TCP server socket on localhost:222222
         final Publisher publisher =
-            new Publisher(context, new StringProtocolCodec(), args.length == 0 ? TcpChannelUtils.LOOPBACK : args[0],
+            new Publisher(context, new StringProtocolCodec(), args.length == 0 ? TcpChannelUtils.LOCALHOST_IP : args[0],
                 22222);
 
         final AtomicReference<CountDownLatch> runLatch = new AtomicReference<CountDownLatch>();
