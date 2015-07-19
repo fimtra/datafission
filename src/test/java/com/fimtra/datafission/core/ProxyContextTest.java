@@ -222,7 +222,6 @@ public class ProxyContextTest
     public void tearDown() throws Exception
     {
         Log.log(this, ">>> teardown: " + this.candidate + "  " + this.publisher);
-        ChannelUtils.WATCHDOG.configure(5000);
 
         this.executor.shutdownNow();
         this.publisher.destroy();
@@ -238,6 +237,7 @@ public class ProxyContextTest
         }
         // IO sensitive
         Thread.sleep(50);
+        ChannelUtils.WATCHDOG.configure(5000);
     }
 
     @Test
