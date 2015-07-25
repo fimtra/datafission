@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import javax.swing.JComponent;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
@@ -172,7 +173,8 @@ public class RowOrientedRecordTable extends JTable
         final Component prepareRenderer = super.prepareRenderer(renderer, row, column);
         final int convertedRowIndex = convertRowIndexToModel(row);
         final int convertedColumnIndex = convertColumnIndexToModel(column);
-        final RecordTableUtils.CellUpdate key = new RecordTableUtils.CellUpdate(convertedRowIndex, convertedColumnIndex);
+        final RecordTableUtils.CellUpdate key =
+            new RecordTableUtils.CellUpdate(convertedRowIndex, convertedColumnIndex);
         final RecordTableUtils.CellUpdate cellUpdate = this.updates.get(key);
         if (cellUpdate != null && cellUpdate.isActive())
         {
@@ -213,6 +215,18 @@ public class RowOrientedRecordTable extends JTable
                 prepareRenderer.setBackground(null);
             }
         }
+
+        final Object valueAt = getValueAt(row, column);
+        if (valueAt instanceof IValue)
+        {
+            ((JComponent) prepareRenderer).setToolTipText(((IValue) valueAt).textValue() + " ("
+                + ((IValue) valueAt).getType() + ")");
+        }
+        else
+        {
+            ((JComponent) prepareRenderer).setToolTipText(valueAt.toString());
+        }
+
         return prepareRenderer;
     }
 

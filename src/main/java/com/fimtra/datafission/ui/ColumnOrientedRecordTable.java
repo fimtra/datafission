@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -297,6 +298,18 @@ public class ColumnOrientedRecordTable extends JTable
                 prepareRenderer.setBackground(null);
             }
         }
+        
+        final Object valueAt = getValueAt(row, column);
+        if (valueAt instanceof IValue)
+        {
+            ((JComponent) prepareRenderer).setToolTipText(((IValue) valueAt).textValue() + " ("
+                + ((IValue) valueAt).getType() + ")");
+        }
+        else
+        {
+            ((JComponent) prepareRenderer).setToolTipText(valueAt.toString());
+        }
+        
         return prepareRenderer;
     }
 
