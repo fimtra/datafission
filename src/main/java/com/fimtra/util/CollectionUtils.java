@@ -15,8 +15,11 @@
  */
 package com.fimtra.util;
 
+import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Set;
 
 import com.fimtra.util.UtilProperties.Values;
 
@@ -38,5 +41,24 @@ public abstract class CollectionUtils
     public static <T> Deque<T> newDeque()
     {
         return UtilProperties.Values.USE_LOW_GC_LINKEDLIST ? new LowGcLinkedList<T>() : new LinkedList<T>();
+    }
+
+    /**
+     * @return an unmodifiable Set view of the comma separated items (each item is trimmed before
+     *         adding)
+     */
+    public static Set<String> newSetFromString(String commaSeparatedList)
+    {
+        if (commaSeparatedList == null)
+        {
+            return Collections.emptySet();
+        }
+        final String[] split = commaSeparatedList.split(",");
+        final Set<String> set = new HashSet<String>(split.length);
+        for (int i = 0; i < split.length; i++)
+        {
+            set.add(split[i].trim());
+        }
+        return Collections.unmodifiableSet(set);
     }
 }
