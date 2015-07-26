@@ -518,20 +518,20 @@ public class ContextTest
         subscriptionsObserver.latch = new CountDownLatch(2);
         this.candidate.addObserver(subscriptionsObserver, ISystemRecordNames.CONTEXT_SUBSCRIPTIONS);
         assertTrue(subscriptionsObserver.latch.await(1, TimeUnit.SECONDS));
-        verify("(Immutable)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1");
+        verify("(ImmutableSnapshot)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1");
 
         TestCachingAtomicChangeObserver observer2 = new TestCachingAtomicChangeObserver();
         subscriptionsObserver.latch = new CountDownLatch(1);
         this.candidate.addObserver(observer2, name);
         assertTrue(subscriptionsObserver.latch.await(1, TimeUnit.SECONDS));
-        verify("(Immutable)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1",
+        verify("(ImmutableSnapshot)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1",
             "test=L1");
 
         // remove the instance
         subscriptionsObserver.latch = new CountDownLatch(1);
         this.candidate.removeRecord(name);
         assertTrue(subscriptionsObserver.latch.await(1, TimeUnit.SECONDS));
-        verify("(Immutable)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1");
+        verify("(ImmutableSnapshot)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1");
     }
 
     static void verify(final String name_context, final TestCachingAtomicChangeObserver observer, final String... items)
@@ -592,7 +592,7 @@ public class ContextTest
         subscriptionsObserver.latch = new CountDownLatch(2);
         this.candidate.addObserver(subscriptionsObserver, ISystemRecordNames.CONTEXT_SUBSCRIPTIONS);
         assertTrue(subscriptionsObserver.latch.await(1, TimeUnit.SECONDS));
-        verify("(Immutable)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1");
+        verify("(ImmutableSnapshot)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1");
 
         subscriptionsObserver.latch = new CountDownLatch(1);
         subscriptionsObserver.reset();
@@ -600,7 +600,7 @@ public class ContextTest
         this.candidate.addObserver(observer2, name);
         this.candidate.addObserver(observer2, name);
         assertTrue(subscriptionsObserver.latch.await(1, TimeUnit.SECONDS));
-        verify("(Immutable)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1",
+        verify("(ImmutableSnapshot)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1",
             "test=L1");
 
         // add second observer to the name2 record
@@ -608,26 +608,26 @@ public class ContextTest
         TestCachingAtomicChangeObserver observer3 = new TestCachingAtomicChangeObserver();
         this.candidate.addObserver(observer3, name);
         assertTrue(subscriptionsObserver.latch.await(1, TimeUnit.SECONDS));
-        verify("(Immutable)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1",
+        verify("(ImmutableSnapshot)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1",
             "test=L2");
 
         subscriptionsObserver.latch = new CountDownLatch(1);
         subscriptionsObserver.reset();
         this.candidate.removeObserver(observer2, name);
         assertTrue(subscriptionsObserver.latch.await(1, TimeUnit.SECONDS));
-        verify("(Immutable)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1",
+        verify("(ImmutableSnapshot)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1",
             "test=L1");
 
         subscriptionsObserver.latch = new CountDownLatch(1);
         subscriptionsObserver.reset();
         this.candidate.removeObserver(observer3, name);
         assertTrue(subscriptionsObserver.latch.await(1, TimeUnit.SECONDS));
-        verify("(Immutable)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1");
+        verify("(ImmutableSnapshot)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1");
 
         // attempt duff removes
         this.candidate.removeObserver(observer3, name);
         this.candidate.removeObserver(observer3, name);
-        verify("(Immutable)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1");
+        verify("(ImmutableSnapshot)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1");
     }
 
     @Test
@@ -641,7 +641,7 @@ public class ContextTest
         subscriptionsObserver.latch = new CountDownLatch(2);
         this.candidate.addObserver(subscriptionsObserver, ISystemRecordNames.CONTEXT_SUBSCRIPTIONS);
         assertTrue(subscriptionsObserver.latch.await(1, TimeUnit.SECONDS));
-        verify("(Immutable)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1");
+        verify("(ImmutableSnapshot)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1");
 
         TestCachingAtomicChangeObserver observer2 = new TestCachingAtomicChangeObserver();
         subscriptionsObserver.latch = new CountDownLatch(2);
@@ -649,7 +649,7 @@ public class ContextTest
         this.candidate.addObserver(observer2, name);
         assertTrue(subscriptionsObserver.latch.await(1, TimeUnit.SECONDS));
         assertEquals(subscriptions.toString(), 2, subscriptions.size());
-        verify("(Immutable)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1",
+        verify("(ImmutableSnapshot)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1",
             "test=L2");
     }
 
@@ -665,13 +665,13 @@ public class ContextTest
         this.candidate.addObserver(subscriptionsObserver, ISystemRecordNames.CONTEXT_SUBSCRIPTIONS);
         assertTrue(subscriptionsObserver.latch.await(1, TimeUnit.SECONDS));
 
-        verify("(Immutable)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1",
+        verify("(ImmutableSnapshot)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1",
             "test=L1");
 
         subscriptionsObserver.latch = new CountDownLatch(1);
         this.candidate.addObserver(subscriptionsObserver, name);
         assertTrue(subscriptionsObserver.latch.await(1, TimeUnit.SECONDS));
-        verify("(Immutable)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1",
+        verify("(ImmutableSnapshot)testContext|ContextSubscriptions|", subscriptionsObserver, "ContextSubscriptions=L1",
             "test=L2");
     }
 
@@ -841,7 +841,7 @@ public class ContextTest
     {
         assertNull(this.candidate.removeRecord("sdf"));
         final Map<String, IValue> createInstance = this.candidate.createRecord(name);
-        assertNotNull(this.candidate.recordImages.get(name));
+        assertNotNull(this.candidate.imageCache.images.get(name));
 
         // add stuff to the instance
         this.candidate.addObserver(new TestCachingAtomicChangeObserver(), name);
@@ -854,14 +854,14 @@ public class ContextTest
         // remove and check
         assertEquals(createInstance, this.candidate.removeRecord(name));
         assertNull(this.candidate.records.get(name));
-        assertNull(this.candidate.recordImages.get(name));
+        assertNull(this.candidate.imageCache.images.get(name));
         assertNull(this.candidate.pendingAtomicChanges.get(name));
         // NOTE: subscribers are INDEPENDENT of record existence
         assertEquals(3, this.candidate.recordObservers.getSubscribersFor(name).length);
 
         // check double remove
         assertNull(this.candidate.removeRecord(name));
-        assertNull(this.candidate.recordImages.get(name));
+        assertNull(this.candidate.imageCache.images.get(name));
     }
 
     @Test
