@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -183,7 +182,8 @@ public final class ProxyContext implements IObserverContext
      * context. The keys are the record names, the value is a string indicating the connection
      * status for the record, one of: {@link #RECORD_CONNECTED} or {@link #RECORD_DISCONNECTED}.
      * <p>
-     * In reality, all records will share the same connection status.
+     * There are occasions where a record will have a different connection status to other records
+     * from the same remote context - typically during a record re-sync operation.
      * 
      * @see ProxyContext#isRecordConnected(String)
      */
@@ -291,6 +291,7 @@ public final class ProxyContext implements IObserverContext
     volatile boolean connected;
     final Context context;
     final ICodec codec;
+    final ImageDeltaChangeProcessor imageDeltaProcessor;
     ITransportChannel channel;
     ITransportChannelBuilderFactory channelBuilderFactory;
 
@@ -327,9 +328,6 @@ public final class ProxyContext implements IObserverContext
     final ConcurrentMap<CountDownLatch, Map<String, Boolean>> actionSubscribeResults;
 
     final AtomicChangeTeleporter teleportReceiver;
-    final Map<String, Map<Long, IRecordChange>> cachedDeltas;
-    /** Tracks when the image of a record is received (deltas consumed after this) */
-    final Map<String, Boolean> imageReceived;
     /** The permission token used for subscribing each record */
     final Map<String, String> tokenPerRecord;
 
@@ -364,9 +362,8 @@ public final class ProxyContext implements IObserverContext
         this.actionSubscribeFutures = new ConcurrentHashMap<CountDownLatch, RunnableFuture<?>>();
         this.actionSubscribeResults = new ConcurrentHashMap<CountDownLatch, Map<String, Boolean>>();
         this.actionResponseLatches = new ConcurrentHashMap<String, List<CountDownLatch>>();
-        this.cachedDeltas = new ConcurrentHashMap<String, Map<Long, IRecordChange>>();
         this.teleportReceiver = new AtomicChangeTeleporter(0);
-        this.imageReceived = new ConcurrentHashMap<String, Boolean>();
+        this.imageDeltaProcessor = new ImageDeltaChangeProcessor();
         this.tokenPerRecord = new ConcurrentHashMap<String, String>();
         // add default permissions for system records
         for (String recordName : ContextUtils.SYSTEM_RECORDS)
@@ -513,7 +510,8 @@ public final class ProxyContext implements IObserverContext
         this.lock.lock();
         try
         {
-            ContextUtils.resubscribeRecordsForContext(this, this.context.recordObservers, this.tokenPerRecord, recordNames);
+            ContextUtils.resubscribeRecordsForContext(this, this.context.recordObservers, this.tokenPerRecord,
+                recordNames);
         }
         finally
         {
@@ -637,7 +635,7 @@ public final class ProxyContext implements IObserverContext
 
                             for (i = 0; i < recordsToUnsubscribe.length; i++)
                             {
-                                ProxyContext.this.imageReceived.remove(recordsToUnsubscribe[i]);
+                                ProxyContext.this.imageDeltaProcessor.unsubscribed(recordsToUnsubscribe[i]);
                             }
                         }
                     };
@@ -659,7 +657,7 @@ public final class ProxyContext implements IObserverContext
                         this.tokenPerRecord.remove(recordName);
                     }
                 }
-                
+
                 // mark the records as disconnected
                 final Lock recordConnectionLock = this.context.getRecord(RECORD_CONNECTION_STATUS_NAME).getWriteLock();
                 recordConnectionLock.lock();
@@ -682,6 +680,7 @@ public final class ProxyContext implements IObserverContext
         {
             this.lock.unlock();
         }
+
         return latch;
     }
 
@@ -980,94 +979,27 @@ public final class ProxyContext implements IObserverContext
                         }
                     }
 
-                    if (record.getSequence() + 1 != changeToApply.getSequence())
+                    final Lock lock = record.getWriteLock();
+                    lock.lock();
+                    try
                     {
-                        if (ProxyContext.this.imageReceived.containsKey(name))
+                        switch(ProxyContext.this.imageDeltaProcessor.processRxChange(changeToApply, name, record))
                         {
-                            Log.log(ProxyContext.this, "Incorrect seq for ", name, ", rx.seq=",
-                                Long.toString(changeToApply.getSequence()), ", record.seq=",
-                                Long.toString(record.getSequence()));
-                            resync(name);
-                            return;
-                        }
-
-                        if (changeToApply.getScope() == IRecordChange.DELTA_SCOPE.charValue())
-                        {
-                            Map<Long, IRecordChange> deltas = ProxyContext.this.cachedDeltas.get(name);
-                            if (deltas == null)
-                            {
-                                deltas = new LinkedHashMap<Long, IRecordChange>();
-                                ProxyContext.this.cachedDeltas.put(name, deltas);
-                            }
-                            deltas.put(Long.valueOf(changeToApply.getSequence()), changeToApply);
-                            Log.log(ProxyContext.this, "Cached delta for ", name, ", rx.seq=",
-                                Long.toString(changeToApply.getSequence()), ", record.seq=",
-                                Long.toString(record.getSequence()));
-                        }
-                        else
-                        {
-                            // its an image
-                            Log.log(ProxyContext.this, "Processing image for ", name, " seq=",
-                                Long.toString(changeToApply.getSequence()));
-
-                            final Lock lock = record.getWriteLock();
-                            lock.lock();
-                            try
-                            {
-                                changeToApply.applyCompleteAtomicChangeToRecord(record);
-                                // apply any subsequent deltas
-                                Map<Long, IRecordChange> deltas = ProxyContext.this.cachedDeltas.remove(name);
-                                if (deltas != null)
-                                {
-                                    Map.Entry<Long, IRecordChange> entry = null;
-                                    Long deltaSequence = null;
-                                    IRecordChange deltaChange = null;
-                                    for (Iterator<Map.Entry<Long, IRecordChange>> it = deltas.entrySet().iterator(); it.hasNext();)
-                                    {
-                                        entry = it.next();
-                                        deltaSequence = entry.getKey();
-                                        deltaChange = entry.getValue();
-                                        if (deltaSequence.longValue() > changeToApply.getSequence())
-                                        {
-                                            Log.log(ProxyContext.this, "Applying delta for ", name, " seq=",
-                                                Long.toString(deltaSequence.longValue()));
-                                            deltaChange.applyCompleteAtomicChangeToRecord(record);
-                                        }
-                                    }
-                                }
-
-                                if (!ProxyContext.this.imageReceived.containsKey(name))
-                                {
-                                    ProxyContext.this.imageReceived.put(name, Boolean.TRUE);
-                                }
+                            case ImageDeltaChangeProcessor.PUBLISH:
+                                // note: use the record.getSequence() as this will be the DELTA
+                                // sequence if an image was received and then cached deltas applied
+                                // on top of it
                                 ProxyContext.this.context.setSequence(name, record.getSequence());
                                 ProxyContext.this.context.publishAtomicChange(name);
-                            }
-                            finally
-                            {
-                                lock.unlock();
-                            }
+                                break;
+                            case ImageDeltaChangeProcessor.RESYNC:
+                                resync(name);
+                                break;
                         }
                     }
-                    else
+                    finally
                     {
-                        final Lock lock = record.getWriteLock();
-                        lock.lock();
-                        try
-                        {
-                            changeToApply.applyCompleteAtomicChangeToRecord(record);
-
-                            if (!ProxyContext.this.imageReceived.containsKey(name))
-                            {
-                                ProxyContext.this.imageReceived.put(name, Boolean.TRUE);
-                            }
-                            ProxyContext.this.context.setSequence(name, record.getSequence());
-                            ProxyContext.this.context.publishAtomicChange(name);
-                        }
-                        finally
-                        {
-                            lock.unlock();
-                        }
+                        lock.unlock();
                     }
                 }
                 catch (Exception e)
@@ -1087,14 +1019,27 @@ public final class ProxyContext implements IObserverContext
 
     void resync(String name)
     {
-        if (this.imageReceived.remove(name) != null)
+        Log.log(this, "Re-syncing ", name);
+
+        // mark the record as disconnected, then reconnecting
+        Lock lock = this.context.getRecord(RECORD_CONNECTION_STATUS_NAME).getWriteLock();
+        lock.lock();
+        try
         {
-            Log.log(this, "Re-syncing ", name);            
-            final String[] recordNames = new String[] { substituteRemoteNameWithLocalName(name) };
-            ProxyContext.this.channel.sendAsync(ProxyContext.this.codec.getTxMessageForUnsubscribe(recordNames));
-            ProxyContext.this.channel.sendAsync(ProxyContext.this.codec.getTxMessageForSubscribe(insertPermissionToken(
-                this.tokenPerRecord.get(name), recordNames)));
+            this.remoteConnectionStatusRecord.put(name, RECORD_DISCONNECTED);
+            this.context.publishAtomicChange(RECORD_CONNECTION_STATUS_NAME);
+            this.remoteConnectionStatusRecord.put(name, RECORD_CONNECTING);
+            this.context.publishAtomicChange(RECORD_CONNECTION_STATUS_NAME);
         }
+        finally
+        {
+            lock.unlock();
+        }
+
+        final String[] recordNames = new String[] { substituteRemoteNameWithLocalName(name) };
+        ProxyContext.this.channel.sendAsync(ProxyContext.this.codec.getTxMessageForUnsubscribe(recordNames));
+        ProxyContext.this.channel.sendAsync(ProxyContext.this.codec.getTxMessageForSubscribe(insertPermissionToken(
+            this.tokenPerRecord.get(name), recordNames)));
     }
 
     void onChannelClosed()
@@ -1375,7 +1320,7 @@ public final class ProxyContext implements IObserverContext
     {
         return RECORD_CONNECTED.equals(this.remoteConnectionStatusRecord.get(recordName));
     }
-    
+
     void subscribe(final String permissionToken, final String[] recordsToSubscribeFor)
     {
         if (ProxyContext.this.channel instanceof ISubscribingChannel)
