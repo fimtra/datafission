@@ -18,16 +18,22 @@ package com.fimtra.tcpchannel;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.regex.Pattern;
 
 import com.fimtra.channel.EndPointAddress;
 import com.fimtra.channel.IEndPointService;
 import com.fimtra.channel.IReceiver;
 import com.fimtra.channel.ITransportChannel;
 import com.fimtra.tcpchannel.TcpChannel.FrameEncodingFormatEnum;
+import com.fimtra.util.CollectionUtils;
 import com.fimtra.util.Log;
 import com.fimtra.util.ObjectUtils;
 import com.fimtra.util.ThreadUtils;
@@ -53,6 +59,8 @@ public class TcpServer implements IEndPointService
     final List<ITransportChannel> clients = new CopyOnWriteArrayList<ITransportChannel>();
 
     final InetSocketAddress localSocketAddress;
+
+    final Set<Pattern> aclPatterns;
 
     /**
      * Construct the TCP server with default server and client receive buffer sizes and frame format
@@ -101,6 +109,9 @@ public class TcpServer implements IEndPointService
         super();
         try
         {
+            final String acl = System.getProperty(TcpChannelProperties.Names.PROPERTY_NAME_SERVER_ACL, ".*");
+            this.aclPatterns = Collections.unmodifiableSet(constructPatterns(CollectionUtils.newSetFromString(acl)));
+            Log.log(this, "ACL is: ", this.aclPatterns.toString());
             this.serverSocketChannel = ServerSocketChannel.open();
             this.serverSocketChannel.configureBlocking(false);
 
@@ -124,6 +135,31 @@ public class TcpServer implements IEndPointService
                         }
                         Log.log(this, ObjectUtils.safeToString(TcpServer.this), " (<-) accepted inbound ",
                             ObjectUtils.safeToString(socketChannel));
+                        if (TcpServer.this.aclPatterns.size() > 0)
+                        {
+                            final SocketAddress remoteAddress = socketChannel.getRemoteAddress();
+                            if (remoteAddress instanceof InetSocketAddress)
+                            {
+                                boolean matched = false;
+                                String hostAddress = ((InetSocketAddress) remoteAddress).getAddress().getHostAddress();
+                                for (Pattern pattern : TcpServer.this.aclPatterns)
+                                {
+                                    if (pattern.matcher(hostAddress).matches())
+                                    {
+                                        Log.log(this, "IP address ", hostAddress, " matches ACL entry ",
+                                            pattern.toString());
+                                        matched = true;
+                                    }
+                                }
+                                if (!matched)
+                                {
+                                    Log.log(this, "*** ACCESS VIOLATION *** IP address ", hostAddress,
+                                        " does not match any ACL pattern");
+                                    socketChannel.close();
+                                    return;
+                                }
+                            }
+                        }
 
                         socketChannel.configureBlocking(false);
                         TcpServer.this.clients.add(new TcpChannel(socketChannel, new IReceiver()
@@ -163,6 +199,16 @@ public class TcpServer implements IEndPointService
             throw new RuntimeException("Could not create " + ObjectUtils.safeToString(this) + " at " + address + ":"
                 + port, e);
         }
+    }
+
+    private static Set<? extends Pattern> constructPatterns(Set<String> set)
+    {
+        Set<Pattern> patterns = new HashSet<Pattern>(set.size());
+        for (String template : set)
+        {
+            patterns.add(Pattern.compile(template));
+        }
+        return patterns;
     }
 
     /**

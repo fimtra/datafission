@@ -49,6 +49,14 @@ public abstract class TcpChannelProperties
          * E.g. <code>-DtcpChannel.frameEncoding=TERMINATOR_BASED</code>
          */
         String PROPERTY_NAME_FRAME_ENCODING = BASE + "frameEncoding";
+        /**
+         * The system property name to define the access control list (ACL) used by any
+         * {@link TcpServer} instances in the VM. This is a comma-separated list of regular
+         * expressions that are matched against incoming TCP/IP remote host IP addresses. If a
+         * remote host IP does not match, the connection is terminated.<br>
+         * E.g. <code>-DtcpChannel.serverAcl=10.0.0.*, 10.1.2.3 </code>
+         */
+        String PROPERTY_NAME_SERVER_ACL = BASE + "serverAcl";
     }
 
     /**

@@ -62,7 +62,7 @@ public class TestTcpServer
 {
     @Rule
     public TestName name = new TestName();
-    
+
     public static class EchoReceiver implements IReceiver
     {
         final CountDownLatch channelClosedLatch = new CountDownLatch(1);
@@ -127,7 +127,7 @@ public class TestTcpServer
     }
 
     private final static int STD_TIMEOUT = 10;
-    private static final String LOCALHOST = "localhost";
+    private static final String LOCALHOST = TcpChannelUtils.LOCALHOST_IP;
     static int PORT = 12000;
 
     final static IReceiver noopReceiver = new NoopReceiver();
@@ -150,7 +150,9 @@ public class TestTcpServer
     @Before
     public void setUp() throws Exception
     {
+        System.setProperty(TcpChannelProperties.Names.PROPERTY_NAME_SERVER_ACL, ".*");
         System.err.println(this.name.getMethodName());
+        Log.log(this, ">>> START ", this.name.getMethodName());
         PORT += 1;
         PORT = TcpChannelUtils.getNextFreeTcpServerPort(null, PORT, PORT + 100);
         Log.log(this, this.name.getMethodName() + ", port=" + PORT);
@@ -160,6 +162,7 @@ public class TestTcpServer
     public void tearDown() throws Exception
     {
         this.server.destroy();
+        ensureServerSocketDestroyed();
     }
 
     @Test
@@ -167,10 +170,10 @@ public class TestTcpServer
     {
         this.server = new TcpServer(LOCALHOST, PORT, new EchoReceiver(), this.frameEncodingFormat);
         this.server.destroy();
-        Thread.sleep(100);
+        ensureServerSocketDestroyed();
         this.server = new TcpServer(LOCALHOST, PORT, new EchoReceiver(), this.frameEncodingFormat);
         this.server.destroy();
-        Thread.sleep(100);
+        ensureServerSocketDestroyed();
         this.server = new TcpServer(LOCALHOST, PORT, new EchoReceiver(), this.frameEncodingFormat);
     }
 
@@ -227,8 +230,96 @@ public class TestTcpServer
     {
         this.server = new TcpServer(LOCALHOST, PORT, new EchoReceiver(), this.frameEncodingFormat);
         this.server.destroy();
-        Thread.sleep(200);
+        ensureServerSocketDestroyed();
         final TcpChannel client = new TcpChannel(LOCALHOST, PORT, new NoopReceiver());
+    }
+
+    void ensureServerSocketDestroyed()
+    {
+        try
+        {
+            int i = 0;
+            TcpChannel client;
+            while (i++ < 10 && (client = new TcpChannel(LOCALHOST, PORT, new NoopReceiver()
+            {
+                @Override
+                public void onDataReceived(byte[] data, ITransportChannel source)
+                {
+                }
+            }, this.frameEncodingFormat)).isConnected())
+            {
+                client.destroy("unit test shutdown server socket");
+            }
+        }
+        catch (Exception e)
+        {
+        }
+    }
+
+    @Test
+    public void testServerACL_blocksClientConnection() throws IOException, InterruptedException
+    {
+        // use totally invalid IP addresses
+        System.setProperty(TcpChannelProperties.Names.PROPERTY_NAME_SERVER_ACL, "999.3.*, 945.*");
+        this.server = new TcpServer(LOCALHOST, PORT, new EchoReceiver(), this.frameEncodingFormat);
+
+        final TcpChannel client = new TcpChannel(LOCALHOST, PORT, new NoopReceiver()
+        {
+            @Override
+            public void onDataReceived(byte[] data, ITransportChannel source)
+            {
+            }
+        }, this.frameEncodingFormat);
+        
+        int i = 0; 
+        while(i++ < 20 && client.isConnected())
+        {
+            // wait for a bit - the socket may initially seem connected but the server should kill it
+            Thread.sleep(50);
+        }
+        assertFalse(client.isConnected());
+    }
+
+    @Test
+    public void testServerACL_allowsClientConnection_exactIP() throws IOException, InterruptedException
+    {
+        String allowed = TcpChannelUtils.LOCALHOST_IP;
+        // use totally invalid IP addresses
+        System.setProperty(TcpChannelProperties.Names.PROPERTY_NAME_SERVER_ACL, "999.3.*, 945.*, " + allowed
+            + ", 3453.23.45.5");
+        this.server = new TcpServer(LOCALHOST, PORT, new EchoReceiver(), this.frameEncodingFormat);
+
+        final TcpChannel client = new TcpChannel(LOCALHOST, PORT, new NoopReceiver()
+        {
+            @Override
+            public void onDataReceived(byte[] data, ITransportChannel source)
+            {
+            }
+        }, this.frameEncodingFormat);
+
+        assertTrue(client.isConnected());
+    }
+
+    @Test
+    public void testServerACL_allowsClientConnection_matchIP() throws IOException, InterruptedException
+    {
+        String allowed = TcpChannelUtils.LOCALHOST_IP;
+        allowed = allowed.substring(0, allowed.indexOf(".")) + ".*";
+
+        // use totally invalid IP addresses
+        System.setProperty(TcpChannelProperties.Names.PROPERTY_NAME_SERVER_ACL, "999.3.*, 945.*, " + allowed
+            + ", 3453.23.45.5");
+        this.server = new TcpServer(LOCALHOST, PORT, new EchoReceiver(), this.frameEncodingFormat);
+
+        final TcpChannel client = new TcpChannel(LOCALHOST, PORT, new NoopReceiver()
+        {
+            @Override
+            public void onDataReceived(byte[] data, ITransportChannel source)
+            {
+            }
+        }, this.frameEncodingFormat);
+
+        assertTrue(client.isConnected());
     }
 
     @Test
