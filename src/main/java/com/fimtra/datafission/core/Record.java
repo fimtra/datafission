@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -145,7 +146,7 @@ final class Record implements IRecord, Cloneable
 
     private static final ConcurrentMap<String, Map<String, IValue>> EMPTY_SUBMAP = newConcurrentHashMap(1);
 
-    long sequence = 0;
+    final AtomicLong sequence;
     final String name;
     final IAtomicChangeManager context;
     final ConcurrentMap<String, IValue> data;
@@ -163,6 +164,7 @@ final class Record implements IRecord, Cloneable
         final ReentrantReadWriteLock reentrantReadWriteLock = new ReentrantReadWriteLock();
         this.readLock = reentrantReadWriteLock.readLock();
         this.writeLock = reentrantReadWriteLock.writeLock();
+        this.sequence = new AtomicLong(0);
     }
 
     /**
@@ -179,6 +181,7 @@ final class Record implements IRecord, Cloneable
         final ReentrantReadWriteLock reentrantReadWriteLock = new ReentrantReadWriteLock();
         this.readLock = reentrantReadWriteLock.readLock();
         this.writeLock = reentrantReadWriteLock.writeLock();
+        this.sequence = new AtomicLong(0);
     }
 
     @Override
@@ -187,7 +190,7 @@ final class Record implements IRecord, Cloneable
         this.readLock.lock();
         try
         {
-            return ImmutableRecord.liveImage(this);
+            return new ImmutableRecord(this);
         }
         finally
         {
@@ -518,7 +521,7 @@ final class Record implements IRecord, Cloneable
         this.readLock.lock();
         try
         {
-            return toString(this.context.getName(), this.name, this.sequence, this.data, this.subMaps);
+            return toString(this.context.getName(), this.name, this.sequence.longValue(), this.data, this.subMaps);
         }
         finally
         {
@@ -729,7 +732,7 @@ final class Record implements IRecord, Cloneable
     @Override
     public long getSequence()
     {
-        return this.sequence;
+        return this.sequence.longValue();
     }
 
     IValue corePut_callWithWriteLock(String key, IValue value)
@@ -809,7 +812,7 @@ final class Record implements IRecord, Cloneable
 
     void setSequence(long sequence)
     {
-        this.sequence = sequence;
+        this.sequence.set(sequence);
     }
 }
 

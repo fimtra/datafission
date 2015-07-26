@@ -73,7 +73,7 @@ public class ImmutableRecordTest
         this.image.put(KEY2, V2);
         this.template = new Record(NAME, this.image, CONTEXT);
         this.template.getOrCreateSubMap(SUB_MAP_KEY).put(KEY1, SUB_MAP_V1);
-        this.candidate = ImmutableRecord.liveImage(this.template);
+        this.candidate = new ImmutableRecord(this.template);
     }
 
     /**
@@ -353,7 +353,7 @@ public class ImmutableRecordTest
     public void testLiveImmutableSeesRecordChanges_createdBeforeSubMap()
     {
         this.template = new Record(NAME, new HashMap<String, IValue>(), CONTEXT);
-        this.candidate = ImmutableRecord.liveImage(this.template);
+        this.candidate = new ImmutableRecord(this.template);
 
         assertEquals(0, this.candidate.keySet().size());
         assertEquals(0, this.candidate.getSubMapKeys().size());

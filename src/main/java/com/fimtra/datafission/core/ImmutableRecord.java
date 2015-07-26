@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 
 import com.fimtra.datafission.IRecord;
@@ -30,14 +31,18 @@ import com.fimtra.datafission.IValue;
 import com.fimtra.util.is;
 
 /**
- * An immutable {@link IRecord}
+ * An immutable {@link IRecord}.
+ * <p>
+ * Immutable here means the contents of the record cannot be changed by this object. <b>However, the
+ * contents of the record can change if the immutable record is created with a LIVE record backing
+ * it. Changes made to the live instance will be seen by this immutable instance.</b>
  * 
  * @author Ramon Servadei
  */
 public class ImmutableRecord implements IRecord
 {
     final String name;
-    final long sequence;
+    final AtomicLong sequence;
     final String contextName;
     final Map<String, IValue> data;
     final Map<String, Map<String, IValue>> subMaps;
@@ -147,7 +152,10 @@ public class ImmutableRecord implements IRecord
     /**
      * Create an {@link ImmutableRecord} instance that is backed by a live {@link Record} instance.
      * Changes in the record will be visible to the immutable instance.
+     * 
+     * @deprecated to be removed
      */
+    @Deprecated
     static ImmutableRecord liveImage(Record template)
     {
         return new ImmutableRecord(template);
@@ -169,21 +177,21 @@ public class ImmutableRecord implements IRecord
             final Record clone =
                 new Record(immutable.name, immutable.data, null, new ConcurrentHashMap<String, Map<String, IValue>>(
                     immutable.subMaps)).clone();
-            return new ImmutableRecord(clone.getName(), immutable.getContextName(), template.getSequence(), clone.data,
-                clone.subMaps, clone.writeLock);
+            return new ImmutableSnapshotRecord(clone.getName(), immutable.getContextName(), template.getSequence(),
+                clone.data, clone.subMaps, clone.writeLock);
         }
         else
         {
             final Record clone = ((Record) template).clone();
-            return new ImmutableRecord(clone.getName(), clone.getContextName(), template.getSequence(), clone.data,
-                clone.subMaps, clone.writeLock);
+            return new ImmutableSnapshotRecord(clone.getName(), clone.getContextName(), template.getSequence(),
+                clone.data, clone.subMaps, clone.writeLock);
         }
     }
 
     /**
      * Used to construct an immutable record from a snapshot of a record.
      */
-    private ImmutableRecord(String name, String contextName, long sequence, Map<String, IValue> data,
+    ImmutableRecord(String name, String contextName, AtomicLong sequence, Map<String, IValue> data,
         Map<String, Map<String, IValue>> subMaps, Lock writeLock)
     {
         super();
@@ -199,10 +207,10 @@ public class ImmutableRecord implements IRecord
      * Construct an immutable record backed by a record. Changes made to the backing record are
      * visible via the immutable instance.
      */
-    private ImmutableRecord(Record template)
+    ImmutableRecord(Record template)
     {
-        this(template.getName(), template.getContextName(), template.getSequence(), template.data,
-            new RecordSubMapAccessor(template), template.getWriteLock());
+        this(template.getName(), template.getContextName(), template.sequence, template.data, new RecordSubMapAccessor(
+            template), template.getWriteLock());
     }
 
     @Override
@@ -364,7 +372,8 @@ public class ImmutableRecord implements IRecord
     @Override
     public String toString()
     {
-        return Record.toString("(Immutable)" + this.contextName, this.name, this.sequence, this.data, this.subMaps);
+        return Record.toString("(Immutable)" + this.contextName, this.name, this.sequence.longValue(), this.data,
+            this.subMaps);
     }
 
     @SuppressWarnings("unchecked")
@@ -408,6 +417,6 @@ public class ImmutableRecord implements IRecord
     @Override
     public long getSequence()
     {
-        return this.sequence;
+        return this.sequence.longValue();
     }
 }
