@@ -135,7 +135,7 @@ public class TcpChannel implements ITransportChannel
      */
     public TcpChannel(String serverHost, int serverPort, IReceiver receiver) throws ConnectException
     {
-        this(serverHost, serverPort, receiver, TcpChannelProperties.RX_BUFFER_SIZE);
+        this(serverHost, serverPort, receiver, TcpChannelProperties.Values.RX_BUFFER_SIZE);
     }
 
     /**
@@ -147,7 +147,7 @@ public class TcpChannel implements ITransportChannel
      */
     public TcpChannel(String serverHost, int serverPort, IReceiver receiver, int rxBufferSize) throws ConnectException
     {
-        this(serverHost, serverPort, receiver, rxBufferSize, TcpChannelProperties.FRAME_ENCODING);
+        this(serverHost, serverPort, receiver, rxBufferSize, TcpChannelProperties.Values.FRAME_ENCODING);
     }
 
     /**
@@ -160,7 +160,7 @@ public class TcpChannel implements ITransportChannel
     public TcpChannel(String serverHost, int serverPort, IReceiver receiver, FrameEncodingFormatEnum frameEncodingFormat)
         throws ConnectException
     {
-        this(serverHost, serverPort, receiver, TcpChannelProperties.RX_BUFFER_SIZE, frameEncodingFormat);
+        this(serverHost, serverPort, receiver, TcpChannelProperties.Values.RX_BUFFER_SIZE, frameEncodingFormat);
     }
 
     /**
@@ -284,8 +284,8 @@ public class TcpChannel implements ITransportChannel
         try
         {
             final byte[][] byteFragmentsToSend =
-                this.byteArrayFragmentResolver.getByteFragmentsToSend(toSend, TcpChannelProperties.TX_SEND_SIZE);
-            for(int i = 0; i < byteFragmentsToSend.length; i++)
+                this.byteArrayFragmentResolver.getByteFragmentsToSend(toSend, TcpChannelProperties.Values.TX_SEND_SIZE);
+            for (int i = 0; i < byteFragmentsToSend.length; i++)
             {
                 this.txFrames.add(byteFragmentsToSend[i]);
             }

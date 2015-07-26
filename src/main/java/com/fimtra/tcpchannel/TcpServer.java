@@ -62,8 +62,8 @@ public class TcpServer implements IEndPointService
      */
     public TcpServer(String address, int port, final IReceiver clientSocketReceiver)
     {
-        this(address, port, clientSocketReceiver, DEFAULT_SERVER_RX_BUFFER_SIZE, TcpChannelProperties.RX_BUFFER_SIZE,
-            FrameEncodingFormatEnum.TERMINATOR_BASED);
+        this(address, port, clientSocketReceiver, DEFAULT_SERVER_RX_BUFFER_SIZE,
+            TcpChannelProperties.Values.RX_BUFFER_SIZE, FrameEncodingFormatEnum.TERMINATOR_BASED);
     }
 
     /**
@@ -74,8 +74,8 @@ public class TcpServer implements IEndPointService
     public TcpServer(String address, int port, final IReceiver clientSocketReceiver,
         TcpChannel.FrameEncodingFormatEnum frameEncodingFormat)
     {
-        this(address, port, clientSocketReceiver, DEFAULT_SERVER_RX_BUFFER_SIZE, TcpChannelProperties.RX_BUFFER_SIZE,
-            frameEncodingFormat);
+        this(address, port, clientSocketReceiver, DEFAULT_SERVER_RX_BUFFER_SIZE,
+            TcpChannelProperties.Values.RX_BUFFER_SIZE, frameEncodingFormat);
     }
 
     /**
@@ -124,6 +124,7 @@ public class TcpServer implements IEndPointService
                         }
                         Log.log(this, ObjectUtils.safeToString(TcpServer.this), " (<-) accepted inbound ",
                             ObjectUtils.safeToString(socketChannel));
+
                         socketChannel.configureBlocking(false);
                         TcpServer.this.clients.add(new TcpChannel(socketChannel, new IReceiver()
                         {

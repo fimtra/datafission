@@ -24,36 +24,63 @@ import com.fimtra.tcpchannel.TcpChannel.FrameEncodingFormatEnum;
  */
 public abstract class TcpChannelProperties
 {
-    private static final String BASE = "tcpChannel.";
     /**
-     * The system property name to define the receive buffer size in bytes.<br>
-     * E.g. <code>-DtcpChannel.rxBufferSize=65535</code>
+     * The names of the properties
+     * 
+     * @author Ramon Servadei
      */
-    public static final String PROPERTY_NAME_RX_BUFFER_SIZE = BASE + "rxBufferSize";
+    public static interface Names
+    {
+        String BASE = "tcpChannel.";
+        /**
+         * The system property name to define the receive buffer size in bytes.<br>
+         * E.g. <code>-DtcpChannel.rxBufferSize=65535</code>
+         */
+        String PROPERTY_NAME_RX_BUFFER_SIZE = BASE + "rxBufferSize";
+        /**
+         * The system property name to define the send buffer size in bytes. This MUST always be
+         * less than the receive buffer size.<br>
+         * E.g. <code>-DtcpChannel.txBufferSize=1024</code>
+         */
+        String PROPERTY_NAME_TX_BUFFER_SIZE = BASE + "txBufferSize";
+        /**
+         * The system property name to define the frame encoding. Value is one of the
+         * {@link FrameEncodingFormatEnum}s<br>
+         * E.g. <code>-DtcpChannel.frameEncoding=TERMINATOR_BASED</code>
+         */
+        String PROPERTY_NAME_FRAME_ENCODING = BASE + "frameEncoding";
+    }
+
     /**
-     * The system property name to define the send buffer size in bytes. This MUST always be less
-     * than the receive buffer size.<br>
-     * E.g. <code>-DtcpChannel.txBufferSize=1024</code>
+     * The values of the properties described in {@link Names}
+     * 
+     * @author Ramon Servadei
      */
-    public static final String PROPERTY_NAME_TX_BUFFER_SIZE = BASE + "txBufferSize";
-    /**
-     * The system property name to define the frame encoding. Value is one of the
-     * {@link FrameEncodingFormatEnum}s<br>
-     * E.g. <code>-DtcpChannel.frameEncoding=TERMINATOR_BASED</code>
-     */
-    public static final String PROPERTY_NAME_FRAME_ENCODING = BASE + "frameEncoding";
+    public static interface Values
+    {
+        /**
+         * The frame encoding, default is TERMINATOR_BASED.
+         * 
+         * @see Names#PROPERTY_NAME_FRAME_ENCODING
+         */
+        TcpChannel.FrameEncodingFormatEnum FRAME_ENCODING =
+            TcpChannel.FrameEncodingFormatEnum.valueOf(System.getProperty(Names.PROPERTY_NAME_FRAME_ENCODING,
+                TcpChannel.FrameEncodingFormatEnum.TERMINATOR_BASED.toString()));
 
-    /** The frame encoding, default is TERMINATOR_BASED */
-    public static final TcpChannel.FrameEncodingFormatEnum FRAME_ENCODING =
-        TcpChannel.FrameEncodingFormatEnum.valueOf(System.getProperty(PROPERTY_NAME_FRAME_ENCODING,
-            TcpChannel.FrameEncodingFormatEnum.TERMINATOR_BASED.toString()));
+        /**
+         * The receive buffer size, default is 65k.
+         * 
+         * @see Names#PROPERTY_NAME_RX_BUFFER_SIZE
+         */
+        int RX_BUFFER_SIZE = Integer.parseInt(System.getProperty(Names.PROPERTY_NAME_RX_BUFFER_SIZE, "65535"));
 
-    /** The receive buffer size, default is 65k */
-    public static final int RX_BUFFER_SIZE =
-        Integer.parseInt(System.getProperty(PROPERTY_NAME_RX_BUFFER_SIZE, "65535"));
-
-    /** The send buffer size, default is 1k */
-    public static final int TX_SEND_SIZE = Integer.parseInt(System.getProperty(PROPERTY_NAME_TX_BUFFER_SIZE, "1024"));
+        /**
+         * The send buffer size, default is 1k.
+         * 
+         * @see Names#PROPERTY_NAME_TX_BUFFER_SIZE
+         */
+        int TX_SEND_SIZE = Integer.parseInt(System.getProperty(Names.PROPERTY_NAME_TX_BUFFER_SIZE, "1024"));
+    }
 
     private TcpChannelProperties()
     {
