@@ -421,7 +421,7 @@ public class ProxyContextTest
         createComponents("testSingleRemoteContextSingleSubscription");
         CountDownLatch record1Latch = new CountDownLatch(UPDATE_COUNT);
         registerObserverForMap(this.candidate, record1, record1Latch);
-        
+
         awaitLatch(record1Latch);
     }
 
@@ -442,8 +442,9 @@ public class ProxyContextTest
         TestLongValueSequenceCheckingAtomicChangeObserver observer =
             new TestLongValueSequenceCheckingAtomicChangeObserver();
         observer.latch = record1Latch;
-        final Map<String, Boolean> result = this.candidate.addObserver(permissionToken, observer, record1, record2).get(5, TimeUnit.SECONDS);       
-        
+        final Map<String, Boolean> result =
+            this.candidate.addObserver(permissionToken, observer, record1, record2).get(5, TimeUnit.SECONDS);
+
         assertEquals(2, result.size());
         assertTrue("Got: " + result, result.get(record1));
         assertFalse("Got: " + result, result.get(record2));
@@ -451,7 +452,7 @@ public class ProxyContextTest
         observers.add(observer);
 
         awaitLatch(record1Latch);
-       
+
         Mockito.verify(filter).accept(eq(permissionToken), eq(record1));
         Mockito.verify(filter).accept(eq(permissionToken), eq(record2));
         verifyNoMoreInteractions(filter);
@@ -523,25 +524,43 @@ public class ProxyContextTest
     public void testSingleRemoteContextWithUnsubscribing() throws Exception
     {
         createComponents("testSingleRemoteContextWithUnsubscribing");
+        assertFalse(this.candidate.isRecordConnected(record1));
+        assertFalse(this.candidate.isRecordConnected(record2));
+        assertFalse(this.candidate.isRecordConnected(record3));
+
         CountDownLatch record1Latch = new CountDownLatch(UPDATE_COUNT);
-        TestLongValueSequenceCheckingAtomicChangeObserver observer =
+        TestLongValueSequenceCheckingAtomicChangeObserver observer1 =
             registerObserverForMap(this.candidate, record1, record1Latch);
-        this.candidate.removeObserver(observer, record1);
+        this.candidate.removeObserver(observer1, record1);
 
         CountDownLatch record2Latch = new CountDownLatch(UPDATE_COUNT);
-        registerObserverForMap(this.candidate, record2, record2Latch);
+        TestLongValueSequenceCheckingAtomicChangeObserver observer2 =
+            registerObserverForMap(this.candidate, record2, record2Latch);
         CountDownLatch record3Latch = new CountDownLatch(UPDATE_COUNT);
-        registerObserverForMap(this.candidate, record3, record3Latch);
+        TestLongValueSequenceCheckingAtomicChangeObserver observer3 =
+            registerObserverForMap(this.candidate, record3, record3Latch);
 
         // re-register
         record1Latch = new CountDownLatch(UPDATE_COUNT);
-        registerObserverForMap(this.candidate, record1, record1Latch);
+        observer1 = registerObserverForMap(this.candidate, record1, record1Latch);
 
         awaitLatch(record1Latch);
         awaitLatch(record2Latch);
         awaitLatch(record3Latch);
 
-        observer.verify();
+        assertTrue(this.candidate.isRecordConnected(record1));
+        assertTrue(this.candidate.isRecordConnected(record2));
+        assertTrue(this.candidate.isRecordConnected(record3));
+
+        this.candidate.removeObserver(observer1, record1);
+        this.candidate.removeObserver(observer2, record2);
+        this.candidate.removeObserver(observer3, record3);
+
+        assertFalse(this.candidate.isRecordConnected(record1));
+        assertFalse(this.candidate.isRecordConnected(record2));
+        assertFalse(this.candidate.isRecordConnected(record3));
+
+        observer1.verify();
     }
 
     @Test

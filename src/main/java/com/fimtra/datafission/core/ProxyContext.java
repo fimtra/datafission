@@ -184,6 +184,8 @@ public final class ProxyContext implements IObserverContext
      * status for the record, one of: {@link #RECORD_CONNECTED} or {@link #RECORD_DISCONNECTED}.
      * <p>
      * In reality, all records will share the same connection status.
+     * 
+     * @see ProxyContext#isRecordConnected(String)
      */
     public static final String RECORD_CONNECTION_STATUS_NAME = "RecordConnectionStatus";
     /**
@@ -657,6 +659,23 @@ public final class ProxyContext implements IObserverContext
                         this.tokenPerRecord.remove(recordName);
                     }
                 }
+                
+                // mark the records as disconnected
+                final Lock recordConnectionLock = this.context.getRecord(RECORD_CONNECTION_STATUS_NAME).getWriteLock();
+                recordConnectionLock.lock();
+                try
+                {
+                    for (int i = 0; i < recordsToUnsubscribe.length; i++)
+                    {
+                        recordName = recordsToUnsubscribe[i];
+                        this.remoteConnectionStatusRecord.put(recordName, RECORD_DISCONNECTED);
+                    }
+                    this.context.publishAtomicChange(RECORD_CONNECTION_STATUS_NAME);
+                }
+                finally
+                {
+                    recordConnectionLock.unlock();
+                }
             }
         }
         finally
@@ -1070,7 +1089,7 @@ public final class ProxyContext implements IObserverContext
     {
         if (this.imageReceived.remove(name) != null)
         {
-            Log.log(this, "Re-syncing ", name);
+            Log.log(this, "Re-syncing ", name);            
             final String[] recordNames = new String[] { substituteRemoteNameWithLocalName(name) };
             ProxyContext.this.channel.sendAsync(ProxyContext.this.codec.getTxMessageForUnsubscribe(recordNames));
             ProxyContext.this.channel.sendAsync(ProxyContext.this.codec.getTxMessageForSubscribe(insertPermissionToken(
@@ -1352,6 +1371,11 @@ public final class ProxyContext implements IObserverContext
         this.context.executeSequentialCoreTask(sequentialRunnable);
     }
 
+    public boolean isRecordConnected(String recordName)
+    {
+        return RECORD_CONNECTED.equals(this.remoteConnectionStatusRecord.get(recordName));
+    }
+    
     void subscribe(final String permissionToken, final String[] recordsToSubscribeFor)
     {
         if (ProxyContext.this.channel instanceof ISubscribingChannel)
