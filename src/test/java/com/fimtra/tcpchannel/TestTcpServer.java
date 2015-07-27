@@ -217,6 +217,7 @@ public class TestTcpServer
             channelConnectedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS));
 
         this.server.destroy();
+        ensureServerSocketDestroyed();
 
         assertTrue("Channel closed callbacks invoked " + (2 - channelClosedLatch.getCount()) + " times",
             channelClosedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS));
