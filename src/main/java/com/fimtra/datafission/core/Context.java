@@ -144,17 +144,83 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
 
     /** Holds all records in this context */
     final ConcurrentMap<String, IRecord> records;
+
     /**
-     * The image of each record that is updated with atomic changes and used to construct an
-     * {@link ImmutableRecord} to pass in to
-     * {@link IRecordListener#onChange(IRecord, IRecordChange)}
+     * Maintains a map of {@link Record} images and {@link ImmutableRecord} instances backed by the
+     * images. Changes are applied to the images which can be viewed by the immutable instances.
+     * 
+     * @author Ramon Servadei
+     */
+    final static class ImageCache
+    {
+        /**
+         * The image of each record that is updated with atomic changes and used to construct an
+         * {@link ImmutableRecord} to pass in to
+         * {@link IRecordListener#onChange(IRecord, IRecordChange)}
+         * <p>
+         * <b>NOTE: the images are only ever updated with atomic changes in the
+         * {@link ISequentialRunnable} that notifies the {@link IRecordListener} instances. This
+         * ensures that the listener instances only see an image that reflects the atomic change
+         * that caused the listener to be notified.</b>
+         */
+        final ConcurrentMap<String, Record> images;
+
+        final ConcurrentMap<String, ImmutableRecord> immutableImages;
+
+        ImageCache(int size)
+        {
+            this.images = new ConcurrentHashMap<String, Record>(size);
+            this.immutableImages = new ConcurrentHashMap<String, ImmutableRecord>(size);
+        }
+
+        void put(String recordName, Record record)
+        {
+            this.images.put(recordName, record);
+            this.immutableImages.put(recordName, new ImmutableRecord(record));
+        }
+
+        IRecord remove(String name)
+        {
+            this.immutableImages.remove(name);
+            return this.images.remove(name);
+        }
+
+        Set<String> keySet()
+        {
+            return this.images.keySet();
+        }
+
+        IRecord updateInstance(String name, IRecordChange change)
+        {
+            final Record record = this.images.get(name);
+            if (record != null)
+            {
+                change.applyCompleteAtomicChangeToRecord(record);
+            }
+            // the Record in the images map backs the ImmutableRecord in the immutableImages map
+            return this.immutableImages.get(name);
+        }
+
+        /**
+         * @return an {@link ImmutableRecord} for the record name, <code>null</code> if the record
+         *         does not exist
+         */
+        ImmutableRecord getImmutableInstance(String name)
+        {
+            return this.immutableImages.get(name);
+        }
+    }
+
+    /**
+     * Manages the images of the contex's records.
      * <p>
      * <b>NOTE: the images are only ever updated with atomic changes in the
      * {@link ISequentialRunnable} that notifies the {@link IRecordListener} instances. This ensures
      * that the listener instances only see an image that reflects the atomic change that caused the
      * listener to be notified.</b>
      */
-    final ConcurrentMap<String, Record> recordImages;
+    final ImageCache imageCache;
+
     /** Tracks the observers for the records in this context */
     final SubscriptionManager<String, IRecordListener> recordObservers;
     /**
@@ -223,7 +289,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
 
         final int initialSize = 1024;
         this.sequences = new ConcurrentHashMap<String, AtomicLong>(initialSize);
-        this.recordImages = new ConcurrentHashMap<String, Record>(initialSize);
+        this.imageCache = new ImageCache(initialSize);
         this.records = new ConcurrentHashMap<String, IRecord>(initialSize);
         this.pendingAtomicChanges = new ConcurrentHashMap<String, AtomicChange>(initialSize);
         this.tokenPerRecord = new ConcurrentHashMap<String, String>(initialSize);
@@ -246,7 +312,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
         this.sequences.put(recordName, new AtomicLong());
         this.pendingAtomicChanges.put(recordName, new AtomicChange(recordName));
         this.pendingAtomicChanges.get(recordName).setSequence(this.sequences.get(recordName).incrementAndGet());
-        this.recordImages.put(recordName, new Record(recordName, ContextUtils.EMPTY_MAP, this.noopChangeManager));
+        this.imageCache.put(recordName, new Record(recordName, ContextUtils.EMPTY_MAP, this.noopChangeManager));
         Record record = new Record(recordName, ContextUtils.EMPTY_MAP, this);
         this.records.put(recordName, record);
 
@@ -350,20 +416,20 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
             {
                 // create and trigger the image publish whilst holding the record's lock - prevents
                 // (however unlikely) concurrent publishing occurring whilst creating
-                final IRecord imageToPublish = ImmutableRecord.liveImage(this.recordImages.get(name));
                 this.coreExecutor.execute(new ISequentialRunnable()
                 {
                     @Override
                     public void run()
                     {
                         long start;
+                        final IRecord imageToPublish = getLastPublishedImage(name);
                         final IRecordChange atomicChange = new AtomicChange(imageToPublish);
 
                         for (int i = 0; i < subscribersForInstance.length; i++)
                         {
                             start = System.nanoTime();
                             subscribersForInstance[i].onChange(imageToPublish, atomicChange);
-                            ContextUtils.measureTask(name, "create record", subscribersForInstance[i],
+                            ContextUtils.measureTask(name, "notify created record", subscribersForInstance[i],
                                 (System.nanoTime() - start));
                         }
                     }
@@ -409,7 +475,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
         }
 
         this.sequences.put(name, new AtomicLong());
-        this.recordImages.put(name, new Record(name, initialData, this.noopChangeManager));
+        this.imageCache.put(name, new Record(name, initialData, this.noopChangeManager));
         record = new Record(name, initialData, this);
         if (!ContextUtils.isSystemRecordName(record.getName()))
         {
@@ -443,7 +509,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
 
                 this.pendingAtomicChanges.remove(name);
                 this.sequences.remove(name);
-                this.recordImages.remove(name);
+                this.imageCache.remove(name);
                 Log.log(this, "Removed '", removed.getName(), "' from context '", removed.getContextName(), "'");
 
                 synchronized (this.recordsToRemoveFromSystemRecords)
@@ -589,8 +655,6 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
             // update the sequence (version) of the record when publishing
             ((Record) record).setSequence(atomicChange.getSequence());
 
-            final Record image = Context.this.recordImages.get(name);
-
             final ISequentialRunnable notifyTask = new ISequentialRunnable()
             {
                 @Override
@@ -599,9 +663,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
                     try
                     {
                         // update the image with the atomic changes in the runnable
-                        atomicChange.applyCompleteAtomicChangeToRecord(image);
-
-                        final ImmutableRecord notifyImage = ImmutableRecord.liveImage(image);
+                        final IRecord notifyImage = Context.this.imageCache.updateInstance(name, atomicChange);
 
                         if (Context.this.validators.size() > 0)
                         {
@@ -710,19 +772,23 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
         {
             if (this.recordObservers.addSubscriberFor(name, observer))
             {
-                Log.log(this, "Adding listener to '", name, "' listener=", ObjectUtils.safeToString(observer));
-                final Record image = this.recordImages.get(name);
-                if (image != null)
+                Log.log(this, "Added listener to '", name, "' listener=", ObjectUtils.safeToString(observer));
+              
+                // Check if there is an image before creating a task to notify with the image.
+                // Don't try an optimise by re-use the published image we get here - its not safe to
+                // cache, see javadocs on the method - we only want to know if there is an image
+                if (getLastPublishedImage(name) != null)
                 {
-                    Log.log(this, "Notifying initial image '", name, "'");
                     this.coreExecutor.execute(new ISequentialRunnable()
                     {
                         @Override
                         public void run()
                         {
+                            Log.log(this, "Notifying initial image '", name, "', listener=",
+                                ObjectUtils.safeToString(observer));
                             final long start = System.nanoTime();
-                            final ImmutableRecord imageToPublish = ImmutableRecord.liveImage(image);
-                            observer.onChange(imageToPublish, new AtomicChange(imageToPublish));
+                            final IRecord imageSnapshot = getLastPublishedImage(name);
+                            observer.onChange(imageSnapshot, new AtomicChange(imageSnapshot));
                             ContextUtils.measureTask(name, "record image-on-subscribe", observer,
                                 (System.nanoTime() - start));
                         }
@@ -1010,12 +1076,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
      */
     IRecord getLastPublishedImage(String name)
     {
-        final Record template = this.recordImages.get(name);
-        if (template == null)
-        {
-            return null;
-        }
-        return ImmutableRecord.liveImage(template);
+        return this.imageCache.getImmutableInstance(name);
     }
 
     @Override
@@ -1041,23 +1102,18 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
     {
         // NOTE: don't iterate over the map entry set - this will not allow interleaved updates to
         // be handled properly whilst going through the entire map of records
-        final Set<String> recordNames = this.recordImages.keySet();
+        final Set<String> recordNames = this.imageCache.keySet();
         for (final String name : recordNames)
         {
-            final IRecord record = ImmutableRecord.liveImage(Context.this.recordImages.get(name));
             this.coreExecutor.execute(new ISequentialRunnable()
             {
                 @Override
                 public void run()
                 {
-                    record.getWriteLock().lock();
-                    try
+                    final IRecord record = getLastPublishedImage(name);
+                    if (record != null)
                     {
                         validator.validate(record, new AtomicChange(record));
-                    }
-                    finally
-                    {
-                        record.getWriteLock().unlock();
                     }
                 }
 

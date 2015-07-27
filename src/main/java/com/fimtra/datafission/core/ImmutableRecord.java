@@ -150,26 +150,17 @@ public class ImmutableRecord implements IRecord
     }
 
     /**
-     * Create an {@link ImmutableRecord} instance that is backed by a live {@link Record} instance.
-     * Changes in the record will be visible to the immutable instance.
-     * 
-     * @deprecated to be removed
-     */
-    @Deprecated
-    static ImmutableRecord liveImage(Record template)
-    {
-        return new ImmutableRecord(template);
-    }
-
-    /**
      * Create a snapshot of the {@link IRecord} as the source for a new {@link ImmutableRecord}
      * instance.
      * <p>
      * This is needed if the template is a 'live' instance that was created via
      * {@link #liveImage(Record)}. Calling this snapshot method creates a snapshot of this 'live'
      * immutable image.
+     * 
+     * @deprecated to be refactored into ImmutableSnapshotRecord.create(IRecord template) 
      */
-    public static ImmutableRecord snapshot(IRecord template)
+    @Deprecated
+    public static ImmutableSnapshotRecord snapshot(IRecord template)
     {
         if (template instanceof ImmutableRecord)
         {
