@@ -457,7 +457,7 @@ public final class ProxyContext implements IObserverContext
             {
                 if (latch.getCount() != 0)
                 {
-                    image.set(ImmutableRecord.snapshot(imageCopy));
+                    image.set(ImmutableSnapshotRecord.create(imageCopy));
                     if (imageCopy.size() > 0)
                     {
                         latch.countDown();

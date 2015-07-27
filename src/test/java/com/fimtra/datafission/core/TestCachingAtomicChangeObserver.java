@@ -23,7 +23,6 @@ import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordChange;
 import com.fimtra.datafission.IRecordListener;
 import com.fimtra.datafission.core.AtomicChange;
-import com.fimtra.datafission.core.ImmutableRecord;
 import com.fimtra.util.Log;
 
 /**
@@ -68,7 +67,7 @@ public class TestCachingAtomicChangeObserver implements IRecordListener
         {
             Log.log(this, "atomicChange=" + atomicChange + ", image=" + image);
         }
-        this.images.add(ImmutableRecord.snapshot(image));
+        this.images.add(ImmutableSnapshotRecord.create(image));
         this.changes.add(atomicChange);
         notifyThreads();
     }

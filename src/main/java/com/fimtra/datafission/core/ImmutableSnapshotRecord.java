@@ -16,9 +16,11 @@
 package com.fimtra.datafission.core;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 
+import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IValue;
 
 /**
@@ -28,6 +30,30 @@ import com.fimtra.datafission.IValue;
  */
 public class ImmutableSnapshotRecord extends ImmutableRecord
 {
+
+    /**
+     * Create a snapshot of the {@link IRecord} as the source for a new {@link ImmutableRecord}
+     * instance.
+     */
+    public static ImmutableSnapshotRecord create(IRecord template)
+    {
+        if (template instanceof ImmutableRecord)
+        {
+            final ImmutableRecord immutable = (ImmutableRecord) template;
+            final Record clone =
+                new Record(immutable.name, immutable.data, null, new ConcurrentHashMap<String, Map<String, IValue>>(
+                    immutable.subMaps)).clone();
+            return new ImmutableSnapshotRecord(clone.getName(), immutable.getContextName(), template.getSequence(),
+                clone.data, clone.subMaps, clone.writeLock);
+        }
+        else
+        {
+            final Record clone = ((Record) template).clone();
+            return new ImmutableSnapshotRecord(clone.getName(), clone.getContextName(), template.getSequence(),
+                clone.data, clone.subMaps, clone.writeLock);
+        }
+    }
+
     /**
      * Used to construct an immutable record from a snapshot of a record.
      */

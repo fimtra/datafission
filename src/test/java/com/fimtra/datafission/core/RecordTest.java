@@ -37,7 +37,6 @@ import org.junit.Test;
 import com.fimtra.datafission.IRecordChange;
 import com.fimtra.datafission.IValue;
 import com.fimtra.datafission.core.Context;
-import com.fimtra.datafission.core.ImmutableRecord;
 import com.fimtra.datafission.core.Record;
 import com.fimtra.datafission.core.SubMap;
 import com.fimtra.datafission.field.DoubleValue;
@@ -94,7 +93,7 @@ public class RecordTest
         assertEquals(this.candidate, snapshot1);
         assertNotSame(this.candidate, snapshot1);
 
-        Record snapshot2 = Record.snapshot(ImmutableRecord.snapshot(this.candidate));
+        Record snapshot2 = Record.snapshot(ImmutableSnapshotRecord.create(this.candidate));
         assertEquals(this.candidate, snapshot2);
         assertNotSame(this.candidate, snapshot2);
         assertEquals(snapshot1, snapshot2);

@@ -1040,7 +1040,7 @@ public class ContextTest
 
         // update a record and do a force validate call too
         record.put(K1, V1);
-        IRecord recordImage = ImmutableRecord.snapshot(record);
+        IRecord recordImage = ImmutableSnapshotRecord.create(record);
         this.candidate.publishAtomicChange(record);
         this.candidate.updateValidator(validator1);
         this.candidate.updateValidator(validator2);
@@ -1064,7 +1064,7 @@ public class ContextTest
 
         // this update should not be picked up by the validator but by validator2
         record.put(K1, V2);
-        recordImage = ImmutableRecord.snapshot(record);
+        recordImage = ImmutableSnapshotRecord.create(record);
         this.candidate.publishAtomicChange(record);
 
         assertTrue(validate2.get().await(1, TimeUnit.SECONDS));

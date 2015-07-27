@@ -52,7 +52,7 @@ import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordChange;
 import com.fimtra.datafission.IRecordListener;
 import com.fimtra.datafission.IValue;
-import com.fimtra.datafission.core.ImmutableRecord;
+import com.fimtra.datafission.core.ImmutableSnapshotRecord;
 import com.fimtra.datafission.field.TextValue;
 import com.fimtra.util.Pair;
 import com.fimtra.util.ThreadUtils;
@@ -203,7 +203,7 @@ public class RowOrientedRecordTableModel extends AbstractTableModel implements I
     @Override
     public void onChange(final IRecord imageCopyValidInCallingThreadOnly, final IRecordChange atomicChange)
     {
-        final IRecord imageCopy = ImmutableRecord.snapshot(imageCopyValidInCallingThreadOnly);
+        final IRecord imageCopy = ImmutableSnapshotRecord.create(imageCopyValidInCallingThreadOnly);
         SwingUtilities.invokeLater(new Runnable()
         {
             @Override

@@ -389,7 +389,7 @@ public class ImmutableRecordTest
         assertEquals(1, this.candidate.getSubMapKeys().size());
         assertTrue(this.candidate.getSubMapKeys().contains(SUB_MAP_KEY));
 
-        ImmutableRecord snapshot = ImmutableRecord.snapshot(this.candidate);
+        ImmutableRecord snapshot = ImmutableSnapshotRecord.create(this.candidate);
         
         // check the live image sees the change
         this.template.put(KEY_3, VALUE_3);
@@ -407,7 +407,7 @@ public class ImmutableRecordTest
     @Test
     public void testSnapshotImmutableDoesNotSeeRecordChanges()
     {
-        this.candidate = ImmutableRecord.snapshot(this.template);
+        this.candidate = ImmutableSnapshotRecord.create(this.template);
 
         this.template.getOrCreateSubMap(SUB_MAP_KEY).put(KEY1, SUB_MAP_V1);
 
