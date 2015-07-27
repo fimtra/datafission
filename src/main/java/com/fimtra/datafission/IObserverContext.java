@@ -252,6 +252,9 @@ public interface IObserverContext
      * This operation passes in a permission token to use. The {@link IPublisherContext} that
      * handles the registration can examine the token to determine if the observer has correct
      * permissions to receive the record changes.
+     * <p>
+     * On re-subscribing, the last used permission token for a record subscription is used. Only 1
+     * permission token can be associated with a record subscription at any point in time.
      * 
      * @param permissionToken
      *            a token representing the permission to use for the operation
