@@ -285,7 +285,7 @@ public class TestTcpServer
     @Test
     public void testServerACL_allowsClientConnection_exactIP() throws IOException, InterruptedException
     {
-        String allowed = TcpChannelUtils.LOCALHOST_IP;
+        String allowed = LOCALHOST;
         // use totally invalid IP addresses
         System.setProperty(TcpChannelProperties.Names.PROPERTY_NAME_SERVER_ACL, "999.3.*, 945.*, " + allowed
             + ", 3453.23.45.5");
@@ -305,7 +305,7 @@ public class TestTcpServer
     @Test
     public void testServerACL_allowsClientConnection_matchIP() throws IOException, InterruptedException
     {
-        String allowed = TcpChannelUtils.LOCALHOST_IP;
+        String allowed = LOCALHOST;
         allowed = allowed.substring(0, allowed.indexOf(".")) + ".*";
 
         // use totally invalid IP addresses
