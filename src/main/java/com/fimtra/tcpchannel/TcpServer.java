@@ -137,7 +137,7 @@ public class TcpServer implements IEndPointService
                             ObjectUtils.safeToString(socketChannel));
                         if (TcpServer.this.aclPatterns.size() > 0)
                         {
-                            final SocketAddress remoteAddress = socketChannel.getRemoteAddress();
+                            final SocketAddress remoteAddress = socketChannel.socket().getRemoteSocketAddress();
                             if (remoteAddress instanceof InetSocketAddress)
                             {
                                 boolean matched = false;
