@@ -42,6 +42,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.omg.CORBA.Environment;
 
 import com.fimtra.channel.ChannelUtils;
 import com.fimtra.channel.IReceiver;
@@ -479,6 +480,7 @@ public class TestTcpServer
             channelConnectedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS));
         assertTrue(closedLatch.getCount() == clientCount);
         this.server.destroy();
+        ensureServerSocketDestroyed();
         assertTrue("Only closed " + ((clientCount) - closedLatch.getCount()) + " clients",
             closedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS));
 
