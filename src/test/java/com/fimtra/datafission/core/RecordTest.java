@@ -761,6 +761,24 @@ public class RecordTest
     }
 
     @Test
+    public void testCloneRecord() throws InterruptedException
+    {
+        addK1K2ToCandidate();
+        Map<String, IValue> m = new HashMap<String, IValue>();
+        m.put(K1, V1);
+        m.put(K2, V2);
+        
+        this.context.publishAtomicChange(name).await();
+        verifyImageSizes(2, 0);
+        
+        Record clone = this.candidate.clone();
+        
+        assertEquals(this.candidate, clone);
+        assertEquals(this.candidate.sequence.get(), clone.sequence.get());
+        assertNotSame(this.candidate, clone);
+    }
+    
+    @Test
     public void testCloneRecordAndSubMap() throws InterruptedException
     {
         addK1K2ToCandidate();
@@ -776,6 +794,7 @@ public class RecordTest
         Record clone = this.candidate.clone();
 
         assertEquals(this.candidate, clone);
+        assertEquals(this.candidate.sequence.get(), clone.sequence.get());
         assertNotSame(this.candidate, clone);
         Set<String> subMapKeys = this.candidate.getSubMapKeys();
         for (String subMapKey : subMapKeys)

@@ -689,23 +689,28 @@ final class Record implements IRecord, Cloneable
     @Override
     protected Record clone()
     {
+        // this is a deep copy of the record internal maps
         this.readLock.lock();
         try
         {
+            final Record cloneRecord;
             if (this.subMaps.size() == 0)
             {
-                return new Record(this.name, newConcurrentHashMap(this.data), this.context);
+                cloneRecord = new Record(this.name, newConcurrentHashMap(this.data), this.context);
             }
-
-            final ConcurrentMap<String, Map<String, IValue>> cloneSubMaps = newConcurrentHashMap(this.subMaps.size());
-            final Record cloneRecord =
-                new Record(this.name, newConcurrentHashMap(this.data), this.context, cloneSubMaps);
-            Map.Entry<String, Map<String, IValue>> entry = null;
-            for (final Iterator<Map.Entry<String, Map<String, IValue>>> it = this.subMaps.entrySet().iterator(); it.hasNext();)
+            else
             {
-                entry = it.next();
-                cloneSubMaps.put(entry.getKey(), ((SubMap) entry.getValue()).clone(cloneRecord));
+                final ConcurrentMap<String, Map<String, IValue>> cloneSubMaps =
+                    newConcurrentHashMap(this.subMaps.size());
+                cloneRecord = new Record(this.name, newConcurrentHashMap(this.data), this.context, cloneSubMaps);
+                Map.Entry<String, Map<String, IValue>> entry = null;
+                for (final Iterator<Map.Entry<String, Map<String, IValue>>> it = this.subMaps.entrySet().iterator(); it.hasNext();)
+                {
+                    entry = it.next();
+                    cloneSubMaps.put(entry.getKey(), ((SubMap) entry.getValue()).clone(cloneRecord));
+                }
             }
+            cloneRecord.sequence.set(this.sequence.get());
             return cloneRecord;
         }
         finally
