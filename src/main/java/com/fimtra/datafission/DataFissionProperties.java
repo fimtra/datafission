@@ -178,11 +178,11 @@ public abstract class DataFissionProperties
         /**
          * The period, in seconds, for context core executors statistics logging.
          * <p>
-         * Default is: 10
+         * Default is: 30
          * 
          * @see Names#STATS_LOGGING_PERIOD_SECS
          */
-        int STATS_LOGGING_PERIOD_SECS = Integer.parseInt(System.getProperty(Names.STATS_LOGGING_PERIOD_SECS, "10"));
+        int STATS_LOGGING_PERIOD_SECS = Integer.parseInt(System.getProperty(Names.STATS_LOGGING_PERIOD_SECS, "30"));
         /**
          * The maximum number of map fields to print.
          * <p>
