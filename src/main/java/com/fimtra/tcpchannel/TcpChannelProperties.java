@@ -60,8 +60,8 @@ public abstract class TcpChannelProperties
          */
         String PROPERTY_NAME_SERVER_ACL = BASE + "serverAcl";
         /**
-         * The system property name to define whether TCP server sockets can re-use an address E.g.
-         * <code>-DtcpChannel.serverSocketReuseAddr=true</code>
+         * The system property name to define whether TCP server sockets can re-use an address.<br>
+         * E.g. <code>-DtcpChannel.serverSocketReuseAddr=true</code>
          * 
          * @see Socket#setReuseAddress(boolean)
          */
