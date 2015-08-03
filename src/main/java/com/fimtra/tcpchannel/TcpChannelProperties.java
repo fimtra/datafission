@@ -15,6 +15,8 @@
  */
 package com.fimtra.tcpchannel;
 
+import java.net.Socket;
+
 import com.fimtra.tcpchannel.TcpChannel.FrameEncodingFormatEnum;
 
 /**
@@ -57,6 +59,13 @@ public abstract class TcpChannelProperties
          * E.g. <code>-DtcpChannel.serverAcl=10.0.0.*, 10.1.2.3 </code>
          */
         String PROPERTY_NAME_SERVER_ACL = BASE + "serverAcl";
+        /**
+         * The system property name to define whether TCP server sockets can re-use an address E.g.
+         * <code>-DtcpChannel.serverSocketReuseAddr=true</code>
+         * 
+         * @see Socket#setReuseAddress(boolean)
+         */
+        String SERVER_SOCKET_REUSE_ADDR = BASE + "serverSocketReuseAddr";
     }
 
     /**
@@ -88,6 +97,14 @@ public abstract class TcpChannelProperties
          * @see Names#PROPERTY_NAME_TX_BUFFER_SIZE
          */
         int TX_SEND_SIZE = Integer.parseInt(System.getProperty(Names.PROPERTY_NAME_TX_BUFFER_SIZE, "1024"));
+
+        /**
+         * The default server socket re-use address value, default is <code>false</code>.
+         * 
+         * @see Names#SERVER_SOCKET_REUSE_ADDR
+         */
+        boolean SERVER_SOCKET_REUSE_ADDR =
+            Boolean.valueOf(System.getProperty(Names.SERVER_SOCKET_REUSE_ADDR, "false")).booleanValue();
     }
 
     private TcpChannelProperties()

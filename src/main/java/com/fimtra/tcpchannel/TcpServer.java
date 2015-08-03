@@ -70,20 +70,22 @@ public class TcpServer implements IEndPointService
      */
     public TcpServer(String address, int port, final IReceiver clientSocketReceiver)
     {
-        this(address, port, clientSocketReceiver, DEFAULT_SERVER_RX_BUFFER_SIZE,
-            TcpChannelProperties.Values.RX_BUFFER_SIZE, FrameEncodingFormatEnum.TERMINATOR_BASED);
+        this(address, port, clientSocketReceiver, FrameEncodingFormatEnum.TERMINATOR_BASED,
+            DEFAULT_SERVER_RX_BUFFER_SIZE, TcpChannelProperties.Values.RX_BUFFER_SIZE,
+            TcpChannelProperties.Values.SERVER_SOCKET_REUSE_ADDR);
     }
 
     /**
-     * Construct the TCP server with default server and client receive buffer sizes
+     * Construct the TCP server with default server and client receive buffer sizes and server
+     * socket re-use address.
      * 
      * @see #TcpServer(String, int, IReceiver, int, int, FrameEncodingFormatEnum)
      */
     public TcpServer(String address, int port, final IReceiver clientSocketReceiver,
         TcpChannel.FrameEncodingFormatEnum frameEncodingFormat)
     {
-        this(address, port, clientSocketReceiver, DEFAULT_SERVER_RX_BUFFER_SIZE,
-            TcpChannelProperties.Values.RX_BUFFER_SIZE, frameEncodingFormat);
+        this(address, port, clientSocketReceiver, frameEncodingFormat, DEFAULT_SERVER_RX_BUFFER_SIZE,
+            TcpChannelProperties.Values.RX_BUFFER_SIZE, TcpChannelProperties.Values.SERVER_SOCKET_REUSE_ADDR);
     }
 
     /**
@@ -95,16 +97,20 @@ public class TcpServer implements IEndPointService
      *            the server socket TCP port
      * @param clientSocketReceiver
      *            the receiver to attach to each new {@link TcpChannel} client that connects
+     * @param frameEncodingFormat
+     *            the frame encoding format for the TCP sockets for this server connection
      * @param clientSocketRxBufferSize
      *            the size (in bytes) of the receive buffer for the client {@link TcpChannel} in
      *            bytes
      * @param serverRxBufferSize
      *            the size of the receive buffer for the server socket
-     * @param frameEncodingFormat
-     *            the frame encoding format for the TCP sockets for this server connection
+     * @param reuseAddress
+     *            whether the server socket can re-use the address, see
+     *            {@link Socket#setReuseAddress(boolean)}
      */
     public TcpServer(String address, int port, final IReceiver clientSocketReceiver,
-        final int clientSocketRxBufferSize, int serverRxBufferSize, final FrameEncodingFormatEnum frameEncodingFormat)
+        final FrameEncodingFormatEnum frameEncodingFormat, final int clientSocketRxBufferSize, int serverRxBufferSize,
+        boolean reuseAddress)
     {
         super();
         try
@@ -115,7 +121,7 @@ public class TcpServer implements IEndPointService
             this.serverSocketChannel = ServerSocketChannel.open();
             this.serverSocketChannel.configureBlocking(false);
 
-            this.serverSocketChannel.socket().setReuseAddress(false);
+            this.serverSocketChannel.socket().setReuseAddress(reuseAddress);
             this.serverSocketChannel.socket().setReceiveBufferSize(serverRxBufferSize);
 
             this.serverSocketChannel.socket().bind(
