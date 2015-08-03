@@ -55,14 +55,8 @@ public final class RollingFileAppender implements Appendable, Closeable, Flushab
      */
     public static RollingFileAppender createStandardRollingFileAppender(String fileIdentity, String directory)
     {
-        final File fileDirectory = new File(directory);
-        fileDirectory.mkdir();
-        String yyyyMMddHHmmssSSS = new FastDateFormat().yyyyMMddHHmmssSSS(System.currentTimeMillis());
-        yyyyMMddHHmmssSSS = yyyyMMddHHmmssSSS.replace(":", "");
-        yyyyMMddHHmmssSSS = yyyyMMddHHmmssSSS.replace("-", "_");
-        yyyyMMddHHmmssSSS = yyyyMMddHHmmssSSS.substring(0, 15);
         final String filePrefix = ThreadUtils.getMainMethodClassSimpleName() + "-" + fileIdentity;
-        final File file = new File(fileDirectory, filePrefix + "_" + yyyyMMddHHmmssSSS + ".log");
+        final File file = FileUtils.createLogFile_yyyyMMddHHmmss(directory, filePrefix);
         RollingFileAppender temp = null;
         try
         {

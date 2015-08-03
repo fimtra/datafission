@@ -238,4 +238,26 @@ public abstract class FileUtils {
             }
         }
     }
+
+    /**
+     * Convenience method to construct a log file in the directory with a prefix and a suffix of
+     * <code>_yyyyMMddHHmmss.log</code>
+     * 
+     * @param directory
+     *            the directory for the file
+     * @param filePrefix
+     *            the prefix for the file
+     * @return the file
+     */
+    public static File createLogFile_yyyyMMddHHmmss(String directory, final String filePrefix)
+    {
+        final File fileDirectory = new File(directory);
+        fileDirectory.mkdir();
+        String yyyyMMddHHmmssSSS = new FastDateFormat().yyyyMMddHHmmssSSS(System.currentTimeMillis());
+        yyyyMMddHHmmssSSS = yyyyMMddHHmmssSSS.replace(":", "");
+        yyyyMMddHHmmssSSS = yyyyMMddHHmmssSSS.replace("-", "_");
+        yyyyMMddHHmmssSSS = yyyyMMddHHmmssSSS.substring(0, 15);
+        final File file = new File(fileDirectory, filePrefix + "_" + yyyyMMddHHmmssSSS + ".log");
+        return file;
+    }
 }
