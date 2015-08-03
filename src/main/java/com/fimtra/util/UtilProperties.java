@@ -56,6 +56,13 @@ public abstract class UtilProperties
          * E.g. <code>-Dutil.useLowGcLinkedList=true</code>
          */
         String USE_LOW_GC_LINKEDLIST = BASE + "useLowGcLinkedList";
+
+        /**
+         * The system property name to define if the thread dumps use the same file or a rolling
+         * file.<br>
+         * E.g. <code>-Dutil.useRollingThreaddumpFile=true</code>
+         */
+        String USE_ROLLING_THREADDUMP_FILE = BASE + "useRollingThreaddumpFile";
     }
 
     /**
@@ -85,6 +92,14 @@ public abstract class UtilProperties
          * @see Names#USE_LOW_GC_LINKEDLIST
          */
         boolean USE_LOW_GC_LINKEDLIST = Boolean.parseBoolean(System.getProperty(Names.USE_LOW_GC_LINKEDLIST, "true"));
+
+        /**
+         * Defines if a rolling thread dump file is used. Default is <code>false</code>
+         * 
+         * @see Names#USE_ROLLING_THREADDUMP_FILE
+         */
+        boolean USE_ROLLING_THREADDUMP_FILE = Boolean.parseBoolean(System.getProperty(Names.USE_ROLLING_THREADDUMP_FILE,
+            "false"));
     }
 
 }

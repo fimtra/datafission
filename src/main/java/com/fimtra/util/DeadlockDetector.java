@@ -15,6 +15,9 @@
  */
 package com.fimtra.util;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.Thread.State;
 import java.lang.management.LockInfo;
 import java.lang.management.ManagementFactory;
@@ -27,8 +30,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Uses a {@link ThreadMXBean} to detect deadlocks.
  * <p>
- * Use {@link #newDeadlockDetectorThread(String, long, DeadlockObserver)} to create a thread to
- * check for deadlocks.
+ * Use {@link #newDeadlockDetectorThread(String, long, DeadlockObserver, boolean)} to create a
+ * thread to check for deadlocks.
  * <p>
  * Also dumps all threads to a file.
  * 
@@ -38,7 +41,7 @@ public final class DeadlockDetector
 {
     /**
      * An observer that receives events when threads are deadlocked. Registered via
-     * {@link DeadlockDetector#newDeadlockDetectorThread(String, long, DeadlockObserver)}
+     * {@link DeadlockDetector#newDeadlockDetectorThread(String, long, DeadlockObserver, boolean)}
      * 
      * @author Ramon Servadei
      */
@@ -50,39 +53,103 @@ public final class DeadlockDetector
     /**
      * Create and start a <b>daemon</b> thread that checks for deadlocks at the specified period.
      * Deadlocks are written to System.err first then passed to the deadlockObserver for handling.
+     * <p>
+     * This thread will also dump the current active threads to a file. The file is either static or
+     * rolling.
+     * 
+     * @param rollingThreaddumpFile
+     *            <code>true</code> to dump threads to a rolling log file, <code>false</code> for a
+     *            static file
      * 
      * @return an AtomicBoolean that can be set to false to stop the detection and terminate the
      *         thread
      */
     public static AtomicBoolean newDeadlockDetectorThread(String threadName, final long checkPeriodMillis,
-        final DeadlockObserver deadlockObserver)
+        final DeadlockObserver deadlockObserver, final boolean rollingThreaddumpFile)
     {
         final AtomicBoolean active = new AtomicBoolean(true);
+
         final Runnable task = new Runnable()
         {
             final DeadlockDetector deadlockDetector = new DeadlockDetector();
-            final RollingFileAppender appender = RollingFileAppender.createStandardRollingFileAppender("threaddump",
-                UtilProperties.Values.LOG_DIR);
+            final RollingFileAppender appender;
+            {
+                if (rollingThreaddumpFile)
+                {
+                    this.appender =
+                        RollingFileAppender.createStandardRollingFileAppender("threaddump",
+                            UtilProperties.Values.LOG_DIR);
+                }
+                else
+                {
+                    this.appender = null;
+                }
+            }
 
             @Override
             public void run()
             {
+                // prepare a static file for logging threaddumps if the rolling option is not used
+                final File staticFile;
+                if (this.appender == null)
+                {
+                    staticFile =
+                        FileUtils.createLogFile_yyyyMMddHHmmss(UtilProperties.Values.LOG_DIR,
+                            ThreadUtils.getMainMethodClassSimpleName() + "-threaddump");
+                    try
+                    {
+                        staticFile.createNewFile();
+                    }
+                    catch (IOException e)
+                    {
+                        Log.log(DeadlockDetector.class, "Could not create " + ObjectUtils.safeToString(staticFile), e);
+                    }
+                }
+                else
+                {
+                    staticFile = null;
+                }
+
                 while (active.get())
                 {
                     try
                     {
-                        final ThreadInfoWrapper[] threads = this.deadlockDetector.getThreadInfoWrappers();
-                        if (threads != null)
+                        if (this.appender != null || staticFile != null)
                         {
-                            StringBuilder sb = new StringBuilder(1024);
-                            for (int i = 0; i < threads.length; i++)
+                            final ThreadInfoWrapper[] threads = this.deadlockDetector.getThreadInfoWrappers();
+                            if (threads != null)
                             {
-                                sb.append(threads[i].toString());
+                                StringBuilder sb = new StringBuilder(1024);
+                                for (int i = 0; i < threads.length; i++)
+                                {
+                                    sb.append(threads[i].toString());
+                                }
+                                if (this.appender != null)
+                                {
+                                    this.appender.append("========  ").append(new Date().toString()).append("  ======").append(
+                                        SystemUtils.lineSeparator());
+                                    this.appender.append(sb);
+                                    this.appender.flush();
+                                }
+                                else
+                                {
+                                    if (staticFile != null)
+                                    {
+                                        PrintWriter staticThreadDump = new PrintWriter(staticFile);
+                                        try
+                                        {
+                                            staticThreadDump.append("========  ").append(new Date().toString()).append(
+                                                "  ======").append(SystemUtils.lineSeparator());
+                                            staticThreadDump.append(sb);
+                                            staticThreadDump.flush();
+                                        }
+                                        finally
+                                        {
+                                            staticThreadDump.close();
+                                        }
+                                    }
+                                }
                             }
-                            this.appender.append("========  ").append(new Date().toString()).append("  ======").append(
-                                SystemUtils.lineSeparator());
-                            this.appender.append(sb);
-                            this.appender.flush();
                         }
 
                         final ThreadInfoWrapper[] deadlocks = this.deadlockDetector.findDeadlocks();

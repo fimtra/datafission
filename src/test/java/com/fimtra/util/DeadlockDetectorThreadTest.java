@@ -37,7 +37,7 @@ public class DeadlockDetectorThreadTest
     public void testStartAndStopNewDeadlockDetectorThread() throws InterruptedException
     {
         DeadlockObserver observer = Mockito.mock(DeadlockObserver.class);
-        final AtomicBoolean flag = DeadlockDetector.newDeadlockDetectorThread("lasers", 50, observer);
+        final AtomicBoolean flag = DeadlockDetector.newDeadlockDetectorThread("lasers", 50, observer, false);
         Thread.sleep(100);
         flag.set(false);
         Thread.sleep(200);
@@ -51,7 +51,7 @@ public class DeadlockDetectorThreadTest
     public void testDeadlockDetectorThread() throws InterruptedException
     {
         DeadlockObserver observer = Mockito.mock(DeadlockObserver.class);
-        DeadlockDetector.newDeadlockDetectorThread("lasers", 50, observer);
+        DeadlockDetector.newDeadlockDetectorThread("lasers", 50, observer, false);
         Thread.sleep(100);
         Mockito.verify(observer, Mockito.atLeastOnce()).onDeadlockFound(Matchers.any(ThreadInfoWrapper[].class));
     }

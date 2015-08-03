@@ -55,6 +55,7 @@ import com.fimtra.util.Log;
 import com.fimtra.util.ObjectUtils;
 import com.fimtra.util.SubscriptionManager;
 import com.fimtra.util.SystemUtils;
+import com.fimtra.util.UtilProperties;
 
 /**
  * A context is the home for a group of records. The definition of the context is application
@@ -89,7 +90,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
                 }
                 System.err.println(sb.toString());
             }
-        });
+        }, UtilProperties.Values.USE_ROLLING_THREADDUMP_FILE);
     }
 
     /**
