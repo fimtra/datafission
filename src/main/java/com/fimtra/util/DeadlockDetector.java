@@ -95,7 +95,7 @@ public final class DeadlockDetector
                 {
                     staticFile =
                         FileUtils.createLogFile_yyyyMMddHHmmss(UtilProperties.Values.LOG_DIR,
-                            ThreadUtils.getMainMethodClassSimpleName() + "-threaddump");
+                            ThreadUtils.getMainMethodClassSimpleName() + "-threadDump");
                     try
                     {
                         staticFile.createNewFile();
