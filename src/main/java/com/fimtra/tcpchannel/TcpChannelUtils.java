@@ -23,7 +23,6 @@ import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
@@ -407,16 +406,17 @@ public abstract class TcpChannelUtils
     /**
      * Close the channel
      */
-    static void closeChannel(final Channel channel)
+    static void closeChannel(final SocketChannel channel)
     {
+        Log.log(TcpChannelUtils.class, "Closing ", ObjectUtils.safeToString(channel));
         try
         {
-            Log.log(TcpChannelUtils.class, "Closing ", ObjectUtils.safeToString(channel));
+            channel.socket().close();
             channel.close();
         }
         catch (IOException e)
         {
-            Log.log(TcpChannelUtils.class, "Could not close " + channel, e);
+            Log.log(TcpChannelUtils.class, "Could not close " + ObjectUtils.safeToString(channel), e);
         }
     }
 
