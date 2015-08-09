@@ -77,7 +77,7 @@ public final class DeadlockDetector
                 if (rollingThreaddumpFile)
                 {
                     this.appender =
-                        RollingFileAppender.createStandardRollingFileAppender("threaddump",
+                        RollingFileAppender.createStandardRollingFileAppender("threadDump",
                             UtilProperties.Values.LOG_DIR);
                 }
                 else
