@@ -95,7 +95,7 @@ public final class DeadlockDetector
                 {
                     staticFile =
                         FileUtils.createLogFile_yyyyMMddHHmmss(UtilProperties.Values.LOG_DIR,
-                            ThreadUtils.getMainMethodClassSimpleName() + "-threadDump");
+                            ThreadUtils.getMainMethodClassSimpleName() + "-threaddump");
                     try
                     {
                         staticFile.createNewFile();
@@ -163,9 +163,6 @@ public final class DeadlockDetector
                             }
                             Log.log(ThreadUtils.class, sb.toString());
                             deadlockObserver.onDeadlockFound(deadlocks);
-                            
-                            // exit after finding a deadlock
-                            active.set(false);
                         }
                         try
                         {
