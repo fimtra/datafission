@@ -36,7 +36,6 @@ import com.fimtra.tcpchannel.TcpChannel.FrameEncodingFormatEnum;
 import com.fimtra.util.CollectionUtils;
 import com.fimtra.util.Log;
 import com.fimtra.util.ObjectUtils;
-import com.fimtra.util.ThreadUtils;
 
 /**
  * A TCP server socket component. A TcpServer is constructed with an {@link IReceiver} that will be
@@ -223,7 +222,17 @@ public class TcpServer implements IEndPointService
     @Override
     public void destroy()
     {
-        TcpChannelUtils.closeChannel(this.serverSocketChannel);
+        Log.log(TcpChannelUtils.class, "Closing ", ObjectUtils.safeToString(this.serverSocketChannel));
+        try
+        {
+            this.serverSocketChannel.socket().close();
+            this.serverSocketChannel.close();
+        }
+        catch (IOException e)
+        {
+            Log.log(TcpChannelUtils.class, "Could not close " + ObjectUtils.safeToString(this.serverSocketChannel), e);
+        }
+        
         TcpChannelUtils.ACCEPT_PROCESSOR.cancel(this.serverSocketChannel);
 
         for (ITransportChannel client : this.clients)
@@ -231,23 +240,6 @@ public class TcpServer implements IEndPointService
             client.destroy("TcpServer shutting down");
         }
         this.clients.clear();
-
-        ThreadUtils.newThread(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                // this is a final attempt to close the server socket
-                try
-                {
-                    new Socket(TcpServer.this.serverSocketChannel.socket().getInetAddress().getCanonicalHostName(),
-                        TcpServer.this.serverSocketChannel.socket().getLocalPort()).close();
-                }
-                catch (IOException e)
-                {
-                }
-            }
-        }, TcpServer.this.toString() + "-shutdown").start();
     }
 
     @Override
