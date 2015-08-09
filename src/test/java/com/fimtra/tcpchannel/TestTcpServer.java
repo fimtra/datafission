@@ -285,13 +285,15 @@ public class TestTcpServer
     @Test
     public void testServerACL_allowsClientConnection_exactIP() throws IOException, InterruptedException
     {
-        String allowed = LOCALHOST;
+        // NOTE: for this test we force use of loopback to ensure we know the IP
+        final String loopback = "127.0.0.1";
+        String allowed = loopback;
         // use totally invalid IP addresses
         System.setProperty(TcpChannelProperties.Names.PROPERTY_NAME_SERVER_ACL, "999.3.*, 945.*, " + allowed
             + ", 3453.23.45.5");
-        this.server = new TcpServer(LOCALHOST, PORT, new EchoReceiver(), this.frameEncodingFormat);
+        this.server = new TcpServer(loopback, PORT, new EchoReceiver(), this.frameEncodingFormat);
 
-        final TcpChannel client = new TcpChannel(LOCALHOST, PORT, new NoopReceiver()
+        final TcpChannel client = new TcpChannel(loopback, PORT, new NoopReceiver()
         {
             @Override
             public void onDataReceived(byte[] data, ITransportChannel source)
@@ -305,15 +307,17 @@ public class TestTcpServer
     @Test
     public void testServerACL_allowsClientConnection_matchIP() throws IOException, InterruptedException
     {
-        String allowed = LOCALHOST;
+        // NOTE: for this test we force use of loopback to ensure we know the IP
+        final String loopback = "127.0.0.1";
+        String allowed = loopback;
         allowed = allowed.substring(0, allowed.indexOf(".")) + ".*";
 
         // use totally invalid IP addresses
         System.setProperty(TcpChannelProperties.Names.PROPERTY_NAME_SERVER_ACL, "999.3.*, 945.*, " + allowed
             + ", 3453.23.45.5");
-        this.server = new TcpServer(LOCALHOST, PORT, new EchoReceiver(), this.frameEncodingFormat);
+        this.server = new TcpServer(loopback, PORT, new EchoReceiver(), this.frameEncodingFormat);
 
-        final TcpChannel client = new TcpChannel(LOCALHOST, PORT, new NoopReceiver()
+        final TcpChannel client = new TcpChannel(loopback, PORT, new NoopReceiver()
         {
             @Override
             public void onDataReceived(byte[] data, ITransportChannel source)
