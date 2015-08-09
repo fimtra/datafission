@@ -15,6 +15,8 @@
  */
 package com.fimtra.datafission.core;
 
+import java.io.File;
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,10 +53,12 @@ import com.fimtra.thimble.ThimbleExecutor;
 import com.fimtra.util.DeadlockDetector;
 import com.fimtra.util.DeadlockDetector.DeadlockObserver;
 import com.fimtra.util.DeadlockDetector.ThreadInfoWrapper;
+import com.fimtra.util.FileUtils;
 import com.fimtra.util.Log;
 import com.fimtra.util.ObjectUtils;
 import com.fimtra.util.SubscriptionManager;
 import com.fimtra.util.SystemUtils;
+import com.fimtra.util.ThreadUtils;
 import com.fimtra.util.UtilProperties;
 
 /**
@@ -91,6 +95,45 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
                 System.err.println(sb.toString());
             }
         }, UtilProperties.Values.USE_ROLLING_THREADDUMP_FILE);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                Log.log(Context.class, "JVM shutting down...");
+                final DeadlockDetector deadlockDetector = new DeadlockDetector();
+                final File threadDumpOnShutdownFile =
+                    FileUtils.createLogFile_yyyyMMddHHmmss(UtilProperties.Values.LOG_DIR,
+                        ThreadUtils.getMainMethodClassSimpleName() + "-threadDumpOnExit");
+                final ThreadInfoWrapper[] threads = deadlockDetector.getThreadInfoWrappers();
+                if (threads != null)
+                {
+                    PrintWriter pw = null;
+                    try
+                    {
+                        pw = new PrintWriter(threadDumpOnShutdownFile);
+                        for (int i = 0; i < threads.length; i++)
+                        {
+                            pw.print(threads[i].toString());
+                            pw.flush();
+                        }
+                        Log.log(Context.class, "Thread dump successful: ", threadDumpOnShutdownFile.toString());
+                    }
+                    catch (Exception e)
+                    {
+                        Log.log(Context.class, "Could not produce threaddump file on exit", e);
+                    }
+                    finally
+                    {
+                        if (pw != null)
+                        {
+                            pw.close();
+                        }
+                    }
+                }
+            }
+        }, "datafission-shutdown"));
     }
 
     /**
@@ -774,7 +817,7 @@ public final class Context implements IPublisherContext, IAtomicChangeManager
             if (this.recordObservers.addSubscriberFor(name, observer))
             {
                 Log.log(this, "Added listener to '", name, "' listener=", ObjectUtils.safeToString(observer));
-              
+
                 // Check if there is an image before creating a task to notify with the image.
                 // Don't try an optimise by re-use the published image we get here - its not safe to
                 // cache, see javadocs on the method - we only want to know if there is an image
