@@ -26,6 +26,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.ConnectException;
+import java.net.Socket;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -240,21 +241,20 @@ public class TestTcpServer
     {
         try
         {
-            int i = 0;
-            TcpChannel client;
-            while (i++ < 10 && (client = new TcpChannel(LOCALHOST, PORT, new NoopReceiver()
+            int j = 0;
+            while (j++ < 10)
             {
-                @Override
-                public void onDataReceived(byte[] data, ITransportChannel source)
+                new Socket(this.server.getEndPointAddress().getNode(), this.server.getEndPointAddress().getPort()).close();
+                try
+                {
+                    Thread.sleep(100);
+                }
+                catch (InterruptedException e)
                 {
                 }
-            }, this.frameEncodingFormat)).isConnected())
-            {
-                client.destroy("unit test shutdown server socket");
-                Thread.sleep(100);
             }
         }
-        catch (Exception e)
+        catch (IOException e)
         {
         }
     }
