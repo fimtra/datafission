@@ -49,23 +49,16 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.fimtra.channel.ChannelUtils;
-import com.fimtra.channel.ChannelWatchdog;
+import com.fimtra.datafission.IObserverContext.ISystemRecordNames;
 import com.fimtra.datafission.IPermissionFilter;
 import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordChange;
 import com.fimtra.datafission.IRecordListener;
 import com.fimtra.datafission.IRpcInstance;
-import com.fimtra.datafission.IValue;
-import com.fimtra.datafission.IObserverContext.ISystemRecordNames;
 import com.fimtra.datafission.IRpcInstance.ExecutionException;
 import com.fimtra.datafission.IRpcInstance.TimeOutException;
+import com.fimtra.datafission.IValue;
 import com.fimtra.datafission.IValue.TypeEnum;
-import com.fimtra.datafission.core.Context;
-import com.fimtra.datafission.core.IStatusAttribute;
-import com.fimtra.datafission.core.ProxyContext;
-import com.fimtra.datafission.core.Publisher;
-import com.fimtra.datafission.core.RpcInstance;
-import com.fimtra.datafission.core.StringProtocolCodec;
 import com.fimtra.datafission.core.IStatusAttribute.Connection;
 import com.fimtra.datafission.core.ProxyContext.IRemoteSystemRecordNames;
 import com.fimtra.datafission.core.RpcInstance.IRpcExecutionHandler;
@@ -804,7 +797,7 @@ public class ProxyContextTest
                 }
             });
 
-            TestUtils.waitForEvent(new EventChecker()
+            TestUtils.waitForEvent(new EventCheckerWithFailureReason()
             {
                 @Override
                 public Object got()
@@ -826,6 +819,12 @@ public class ProxyContextTest
                 public Object expect()
                 {
                     return fieldCountForSingleConnection;
+                }
+                
+                @Override
+                public String getFailureReason()
+                {
+                    return "REMOTE_CONTEXT_CONNECTIONS record was: " + candidate2.getRecord(IRemoteSystemRecordNames.REMOTE_CONTEXT_CONNECTIONS);
                 }
             });
         }
