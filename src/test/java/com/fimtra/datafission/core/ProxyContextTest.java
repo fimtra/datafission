@@ -77,6 +77,7 @@ import com.fimtra.util.Log;
 import com.fimtra.util.TestUtils;
 import com.fimtra.util.TestUtils.EventChecker;
 import com.fimtra.util.TestUtils.EventCheckerWithFailureReason;
+import com.fimtra.util.TestUtils.EventFailedException;
 
 /**
  * Tests the {@link ProxyContext} and {@link Publisher}
@@ -548,19 +549,38 @@ public class ProxyContextTest
         awaitLatch(record2Latch);
         awaitLatch(record3Latch);
 
-        assertTrue(this.candidate.isRecordConnected(record1));
-        assertTrue(this.candidate.isRecordConnected(record2));
-        assertTrue(this.candidate.isRecordConnected(record3));
+        checkRecordConnectedStatus(record1, true);
+        checkRecordConnectedStatus(record2, true);
+        checkRecordConnectedStatus(record3, true);
 
         this.candidate.removeObserver(observer1, record1);
         this.candidate.removeObserver(observer2, record2);
         this.candidate.removeObserver(observer3, record3);
 
-        assertFalse(this.candidate.isRecordConnected(record1));
-        assertFalse(this.candidate.isRecordConnected(record2));
-        assertFalse(this.candidate.isRecordConnected(record3));
+        checkRecordConnectedStatus(record1, false);
+        checkRecordConnectedStatus(record2, false);
+        checkRecordConnectedStatus(record3, false);
 
         observer1.verify();
+    }
+
+    void checkRecordConnectedStatus(final String recordName, final Boolean status) throws InterruptedException,
+        EventFailedException
+    {
+        waitForEvent(new EventChecker()
+        {
+            @Override
+            public Object got()
+            {
+                return ProxyContextTest.this.candidate.isRecordConnected(recordName);
+            }
+
+            @Override
+            public Object expect()
+            {
+                return status;
+            }
+        });
     }
 
     @Test
