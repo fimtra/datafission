@@ -25,6 +25,10 @@ import com.fimtra.tcpchannel.TcpChannel.FrameEncodingFormatEnum;
  */
 public class TestTcpServerWithLengthBasedFrameEncodingFormat extends TestTcpServer
 {
+    static
+    {
+        PORT = 14000;
+    }
 
     public TestTcpServerWithLengthBasedFrameEncodingFormat()
     {
