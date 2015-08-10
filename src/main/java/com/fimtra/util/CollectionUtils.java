@@ -46,14 +46,26 @@ public abstract class CollectionUtils
     /**
      * @return an unmodifiable Set view of the comma separated items (each item is trimmed before
      *         adding)
+     * @deprecated Use {@link #newSetFromString(String,String)} instead
      */
     public static Set<String> newSetFromString(String commaSeparatedList)
     {
-        if (commaSeparatedList == null)
+        return newSetFromString(commaSeparatedList, ",");
+    }
+
+    /**
+     * @param tokenSeparator
+     *            the token that separates the items
+     * @return an unmodifiable Set view of the token separated items (each item is trimmed before
+     *         adding)
+     */
+    public static Set<String> newSetFromString(String tokenSeparatedList, String tokenSeparator)
+    {
+        if (tokenSeparatedList == null)
         {
             return Collections.emptySet();
         }
-        final String[] split = commaSeparatedList.split(",");
+        final String[] split = tokenSeparatedList.split(tokenSeparator);
         final Set<String> set = new HashSet<String>(split.length);
         for (int i = 0; i < split.length; i++)
         {

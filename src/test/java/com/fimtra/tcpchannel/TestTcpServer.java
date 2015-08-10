@@ -262,7 +262,7 @@ public class TestTcpServer
     public void testServerACL_blocksClientConnection() throws IOException, InterruptedException
     {
         // use totally invalid IP addresses
-        System.setProperty(TcpChannelProperties.Names.PROPERTY_NAME_SERVER_ACL, "999.3.*, 945.*");
+        System.setProperty(TcpChannelProperties.Names.PROPERTY_NAME_SERVER_ACL, "999.3.*;945.*");
         this.server = new TcpServer(LOCALHOST, PORT, new EchoReceiver(), this.frameEncodingFormat);
 
         final TcpChannel client = new TcpChannel(LOCALHOST, PORT, new NoopReceiver()
@@ -287,10 +287,10 @@ public class TestTcpServer
     {
         // NOTE: for this test we force use of loopback to ensure we know the IP
         final String loopback = "127.0.0.1";
-        String allowed = loopback;
+        String allowed = "127\\.0\\.0\\.1";
         // use totally invalid IP addresses
-        System.setProperty(TcpChannelProperties.Names.PROPERTY_NAME_SERVER_ACL, "999.3.*, 945.*, " + allowed
-            + ", 3453.23.45.5");
+        System.setProperty(TcpChannelProperties.Names.PROPERTY_NAME_SERVER_ACL, "999.3.*;945.*;" + allowed
+            + ";3453.23.45.5");
         this.server = new TcpServer(loopback, PORT, new EchoReceiver(), this.frameEncodingFormat);
 
         final TcpChannel client = new TcpChannel(loopback, PORT, new NoopReceiver()
@@ -309,12 +309,11 @@ public class TestTcpServer
     {
         // NOTE: for this test we force use of loopback to ensure we know the IP
         final String loopback = "127.0.0.1";
-        String allowed = loopback;
-        allowed = allowed.substring(0, allowed.indexOf(".")) + ".*";
+        String allowed = "127\\..*";
 
         // use totally invalid IP addresses
-        System.setProperty(TcpChannelProperties.Names.PROPERTY_NAME_SERVER_ACL, "999.3.*, 945.*, " + allowed
-            + ", 3453.23.45.5");
+        System.setProperty(TcpChannelProperties.Names.PROPERTY_NAME_SERVER_ACL, "999.3.*; 945.*;" + allowed
+            + ";3453.23.45.5");
         this.server = new TcpServer(loopback, PORT, new EchoReceiver(), this.frameEncodingFormat);
 
         final TcpChannel client = new TcpChannel(loopback, PORT, new NoopReceiver()

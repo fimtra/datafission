@@ -115,7 +115,7 @@ public class TcpServer implements IEndPointService
         try
         {
             final String acl = System.getProperty(TcpChannelProperties.Names.PROPERTY_NAME_SERVER_ACL, ".*");
-            this.aclPatterns = Collections.unmodifiableSet(constructPatterns(CollectionUtils.newSetFromString(acl)));
+            this.aclPatterns = Collections.unmodifiableSet(constructPatterns(CollectionUtils.newSetFromString(acl, ";")));
             Log.log(this, "ACL is: ", this.aclPatterns.toString());
             this.serverSocketChannel = ServerSocketChannel.open();
             this.serverSocketChannel.configureBlocking(false);
