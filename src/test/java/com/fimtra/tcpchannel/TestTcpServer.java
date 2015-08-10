@@ -466,17 +466,20 @@ public class TestTcpServer
         List<TcpChannel> clients = new ArrayList<TcpChannel>(clientCount);
         for (int i = 0; i < clientCount; i++)
         {
+        	final int count = i;
             clients.add(new TcpChannel(LOCALHOST, PORT, new NoopReceiver()
             {
                 @Override
                 public void onChannelConnected(ITransportChannel tcpChannel)
                 {
+                	Log.log(this, "### Connected channel #" + count + ", channel=" + tcpChannel);
                     channelConnectedLatch.countDown();
                 }
 
                 @Override
                 public void onChannelClosed(ITransportChannel tcpChannel)
                 {
+                	Log.log(this, "### Closing channel #" + count + ", channel=" + tcpChannel);
                     closedLatch.countDown();
                 }
             }, this.frameEncodingFormat));
@@ -484,6 +487,10 @@ public class TestTcpServer
         boolean result = channelConnectedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS);
         assertTrue("Only connected " + ((clientCount) - channelConnectedLatch.getCount()) + " clients", result);
         assertTrue(closedLatch.getCount() == clientCount);
+        
+        // Don't destroy the server just yet, give things time to settle - don't remove this! 
+        Thread.sleep(1000);
+        
         this.server.destroy();
         ensureServerSocketDestroyed();
         result = closedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS);
