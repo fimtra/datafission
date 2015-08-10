@@ -215,14 +215,14 @@ public class TestTcpServer
             }
         }, this.frameEncodingFormat);
 
-        assertTrue("Channel connected callbacks invoked " + (2 - channelConnectedLatch.getCount()) + " times",
-            channelConnectedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS));
+        boolean result = channelConnectedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS);
+        assertTrue("Channel connected callbacks invoked " + (2 - channelConnectedLatch.getCount()) + " times", result);
 
         this.server.destroy();
         ensureServerSocketDestroyed();
 
-        assertTrue("Channel closed callbacks invoked " + (2 - channelClosedLatch.getCount()) + " times",
-            channelClosedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS));
+        result = channelClosedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS);
+        assertTrue("Channel closed callbacks invoked " + (2 - channelClosedLatch.getCount()) + " times", result);
 
         assertFalse(client.sendAsync("sdf3".getBytes()));
         assertFalse(client2.sendAsync("sdf3".getBytes()));
@@ -273,11 +273,12 @@ public class TestTcpServer
             {
             }
         }, this.frameEncodingFormat);
-        
-        int i = 0; 
-        while(i++ < 20 && client.isConnected())
+
+        int i = 0;
+        while (i++ < 20 && client.isConnected())
         {
-            // wait for a bit - the socket may initially seem connected but the server should kill it
+            // wait for a bit - the socket may initially seem connected but the server should kill
+            // it
             Thread.sleep(50);
         }
         assertFalse(client.isConnected());
@@ -367,8 +368,8 @@ public class TestTcpServer
         assertTrue(client.sendAsync(message2.getBytes()));
         assertTrue(client2.sendAsync(message1.getBytes()));
         assertTrue(client2.sendAsync(message2.getBytes()));
-        assertTrue("onDataReceived only called " + (4 - latch.getCount()) + " times",
-            latch.await(STD_TIMEOUT, TimeUnit.SECONDS));
+        final boolean result = latch.await(STD_TIMEOUT, TimeUnit.SECONDS);
+        assertTrue("onDataReceived only called " + (4 - latch.getCount()) + " times", result);
         assertEquals(expected1, received1);
         assertEquals(expected2, received2);
     }
@@ -417,8 +418,8 @@ public class TestTcpServer
         assertTrue(client.sendAsync(message2.getBytes()));
         assertTrue(client2.sendAsync(message1.getBytes()));
         assertTrue(client2.sendAsync(message2.getBytes()));
-        assertTrue("onDataReceived only called " + (4 - latch.getCount()) + " times",
-            latch.await(STD_TIMEOUT, TimeUnit.SECONDS));
+        final boolean result = latch.await(STD_TIMEOUT, TimeUnit.SECONDS);
+        assertTrue("onDataReceived only called " + (4 - latch.getCount()) + " times", result);
         assertEquals(expected1, received1);
         assertEquals(expected2, received2);
     }
@@ -480,13 +481,13 @@ public class TestTcpServer
                 }
             }, this.frameEncodingFormat));
         }
-        assertTrue("Only connected " + ((clientCount) - channelConnectedLatch.getCount()) + " clients",
-            channelConnectedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS));
+        boolean result = channelConnectedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS);
+        assertTrue("Only connected " + ((clientCount) - channelConnectedLatch.getCount()) + " clients", result);
         assertTrue(closedLatch.getCount() == clientCount);
         this.server.destroy();
         ensureServerSocketDestroyed();
-        assertTrue("Only closed " + ((clientCount) - closedLatch.getCount()) + " clients",
-            closedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS));
+        result = closedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS);
+        assertTrue("Only closed " + ((clientCount) - closedLatch.getCount()) + " clients", result);
 
         // now loop around until we get our callback invoked
         final int MAX_TRIES = 10;
@@ -549,8 +550,8 @@ public class TestTcpServer
                 clients.get(i).sendAsync(("" + j).getBytes());
             }
         }
-        assertTrue("Only received " + ((messageCount * clientCount) - latch.getCount()) + " correct messages",
-            latch.await(STD_TIMEOUT, TimeUnit.SECONDS));
+        final boolean result = latch.await(STD_TIMEOUT, TimeUnit.SECONDS);
+        assertTrue("Only received " + ((messageCount * clientCount) - latch.getCount()) + " correct messages", result);
     }
 
     @Test
