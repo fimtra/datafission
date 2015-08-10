@@ -146,7 +146,7 @@ public class CoalescingRecordListenerTest
         observer.latch = new CountDownLatch(1);
         this.candidate.addObserver(wrap(observer), name);
 
-        assertTrue(observer.latch.await(1, TimeUnit.SECONDS));
+        assertTrue(observer.latch.await(2, TimeUnit.SECONDS));
 
         // update all records
         for (int i = 0; i < serviceCount; i++)
