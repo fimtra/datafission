@@ -964,13 +964,8 @@ public final class ProxyContext implements IObserverContext
             {
                 try
                 {
-                    if (ProxyContext.this.remoteConnectionStatusRecord.put(changeName, RECORD_CONNECTED) != RECORD_CONNECTED)
-                    {
-                        ProxyContext.this.context.publishAtomicChange(RECORD_CONNECTION_STATUS_NAME);
-                    }
-
                     final String name = substituteLocalNameWithRemoteName(changeName);
-
+                    
                     final boolean recordIsSubscribed =
                         ProxyContext.this.context.recordObservers.getSubscribersFor(name).length > 0;
                     if (!recordIsSubscribed)
@@ -978,6 +973,11 @@ public final class ProxyContext implements IObserverContext
                         Log.log(ProxyContext.this, "Received record but no subscription exists - ignoring ",
                             ObjectUtils.safeToString(changeToApply));
                         return;
+                    }
+
+                    if (ProxyContext.this.remoteConnectionStatusRecord.put(changeName, RECORD_CONNECTED) != RECORD_CONNECTED)
+                    {
+                        ProxyContext.this.context.publishAtomicChange(RECORD_CONNECTION_STATUS_NAME);
                     }
 
                     IRecord record = ProxyContext.this.context.getRecord(name);
