@@ -53,6 +53,8 @@ import com.fimtra.tcpchannel.TcpChannelUtils;
 import com.fimtra.tcpchannel.TcpServer;
 import com.fimtra.tcpchannel.TcpChannel.FrameEncodingFormatEnum;
 import com.fimtra.util.Log;
+import com.fimtra.util.TestUtils;
+import com.fimtra.util.TestUtils.EventChecker;
 
 /**
  * Tests the {@link TcpServer} and {@link TcpChannel}
@@ -660,7 +662,20 @@ public class TestTcpServer
             }
         }, this.frameEncodingFormat);
         assertTrue("channel was not connected", channelConnectedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS));
-        assertEquals(1, this.server.clients.size());
+        TestUtils.waitForEvent(new EventChecker()
+        {
+            @Override
+            public Object got()
+            {
+                return TestTcpServer.this.server.clients.size();
+            }
+            
+            @Override
+            public Object expect()
+            {
+                return 1;
+            }
+        });
         client.socketChannel.close();
         SelectionKey keyFor = client.socketChannel.keyFor(TcpChannelUtils.READER.selector);
         if (keyFor != null)
@@ -669,7 +684,20 @@ public class TestTcpServer
         }
         assertTrue("channel was not closed", closedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS));
         assertTrue(clientSocketReceiver.channelClosedLatch.await(STD_TIMEOUT, TimeUnit.SECONDS));
-        assertEquals(0, this.server.clients.size());
+        TestUtils.waitForEvent(new EventChecker()
+        {
+            @Override
+            public Object got()
+            {
+                return TestTcpServer.this.server.clients.size();
+            }
+            
+            @Override
+            public Object expect()
+            {
+                return 0;
+            }
+        });
     }
 
     @Test
