@@ -17,6 +17,7 @@ package com.fimtra.tcpchannel;
 
 import java.io.IOException;
 
+import com.fimtra.channel.EndPointAddress;
 import com.fimtra.channel.IReceiver;
 import com.fimtra.channel.ITransportChannelBuilder;
 import com.fimtra.tcpchannel.TcpChannel.FrameEncodingFormatEnum;
@@ -28,27 +29,31 @@ import com.fimtra.tcpchannel.TcpChannel.FrameEncodingFormatEnum;
  */
 public final class TcpChannelBuilder implements ITransportChannelBuilder
 {
-    final String host;
-    final int port;
+    final EndPointAddress endPointAddress;
     final FrameEncodingFormatEnum frameEncodingFormat;
 
-    public TcpChannelBuilder(FrameEncodingFormatEnum frameEncodingFormat, String host, int port)
+    public TcpChannelBuilder(FrameEncodingFormatEnum frameEncodingFormat, EndPointAddress endPointAddress)
     {
-        this.host = host;
-        this.port = port;
+        this.endPointAddress = endPointAddress;
         this.frameEncodingFormat = frameEncodingFormat;
     }
 
     @Override
     public TcpChannel buildChannel(IReceiver receiver) throws IOException
     {
-        return new TcpChannel(this.host, this.port, receiver, this.frameEncodingFormat);
+        return new TcpChannel(this.endPointAddress.getNode(), this.endPointAddress.getPort(), receiver, this.frameEncodingFormat);
+    }
+    
+    @Override
+    public EndPointAddress getEndPointAddress()
+    {
+        return this.endPointAddress;
     }
 
     @Override
     public String toString()
     {
-        return "TcpChannelBuilder [host=" + this.host + ", port=" + this.port + ", frameEncodingFormat="
+        return "TcpChannelBuilder [" + this.endPointAddress + ", frameEncodingFormat="
             + this.frameEncodingFormat + "]";
     }
 }

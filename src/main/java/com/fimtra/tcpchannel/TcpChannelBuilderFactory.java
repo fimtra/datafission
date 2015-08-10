@@ -15,7 +15,6 @@
  */
 package com.fimtra.tcpchannel;
 
-import com.fimtra.channel.EndPointAddress;
 import com.fimtra.channel.IEndPointAddressFactory;
 import com.fimtra.channel.ITransportChannelBuilder;
 import com.fimtra.channel.ITransportChannelBuilderFactory;
@@ -40,8 +39,7 @@ public final class TcpChannelBuilderFactory implements ITransportChannelBuilderF
     @Override
     public ITransportChannelBuilder nextBuilder()
     {
-        EndPointAddress next = this.endPoints.next();
-        return new TcpChannelBuilder(this.frameEncodingFormat, next.getNode(), next.getPort());
+        return new TcpChannelBuilder(this.frameEncodingFormat, this.endPoints.next());
     }
 
     @Override

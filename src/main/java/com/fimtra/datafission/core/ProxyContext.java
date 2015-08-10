@@ -330,6 +330,7 @@ public final class ProxyContext implements IObserverContext
     final AtomicChangeTeleporter teleportReceiver;
     /** The permission token used for subscribing each record */
     final Map<String, String> tokenPerRecord;
+    EndPointAddress currentEndPoint;
 
     /**
      * Construct the proxy context and connect it to a {@link Publisher} using the specified host
@@ -380,6 +381,21 @@ public final class ProxyContext implements IObserverContext
 
         // this allows the ProxyContext to be constructed and reconnects asynchronously
         reconnect();
+    }
+
+    /**
+     * @return the {@link EndPointAddress} used for the connection this proxy is using.
+     *         <p>
+     *         Note that the connection may be broken, use {@link #isConnected()} to determine this.
+     *         Be aware that there may be a race condition if calling {@link #isConnected()} on a
+     *         channel whilst the connection is happening, so just because {@link #isConnected()}
+     *         returns <code>false</code> does not necessarily mean that the end point address is
+     *         not available. Only when {@link #isConnected()} returns <code>true</code> can this
+     *         end point address be guaranteed.
+     */
+    public EndPointAddress getEndPointAddress()
+    {
+        return this.currentEndPoint;
     }
 
     /**
@@ -777,6 +793,7 @@ public final class ProxyContext implements IObserverContext
         };
 
         final ITransportChannelBuilder channelBuilder = this.channelBuilderFactory.nextBuilder();
+        this.currentEndPoint = channelBuilder.getEndPointAddress();
         Log.log(this, "Constructing channel using ", ObjectUtils.safeToString(channelBuilder));
         final ITransportChannel channel = channelBuilder.buildChannel(receiver);
         channel.sendAsync(this.codec.getTxMessageForIdentify(getName()));

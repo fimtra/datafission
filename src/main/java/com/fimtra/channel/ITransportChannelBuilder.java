@@ -17,7 +17,6 @@ package com.fimtra.channel;
 
 import java.io.IOException;
 
-
 /**
  * Encapsulates building a specific type of transport channel
  * 
@@ -32,4 +31,10 @@ public interface ITransportChannelBuilder
      *             if the channel could not be built
      */
     ITransportChannel buildChannel(IReceiver receiver) throws IOException;
+
+    /**
+     * @return the {@link EndPointAddress} used by this builder for constructing channels in the
+     *         {@link #buildChannel(IReceiver)} method
+     */
+    EndPointAddress getEndPointAddress();
 }
