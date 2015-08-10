@@ -20,6 +20,7 @@ import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -127,6 +128,19 @@ public abstract class TcpChannelUtils
                 final ServerSocket serverSocket = new ServerSocket();
                 serverSocket.bind(new InetSocketAddress(hostAddress, i));
                 serverSocket.close();
+                // now ensure the server socket is closed before saying we can use it
+                try
+                {
+                    int j = 0;
+                    while (j++ < 10)
+                    {
+                        new Socket(hostAddress, i).close();
+                        Thread.sleep(100);
+                    }
+                }
+                catch (Exception e)
+                {
+                }
                 Log.log(TcpChannelUtils.class, "Using ", hostAddress, ":", Integer.toString(i));
                 return i;
             }
