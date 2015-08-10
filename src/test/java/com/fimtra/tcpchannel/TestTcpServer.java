@@ -251,6 +251,7 @@ public class TestTcpServer
             }, this.frameEncodingFormat)).isConnected())
             {
                 client.destroy("unit test shutdown server socket");
+                Thread.sleep(100);
             }
         }
         catch (Exception e)
