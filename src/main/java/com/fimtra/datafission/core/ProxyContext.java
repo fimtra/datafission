@@ -975,11 +975,6 @@ public final class ProxyContext implements IObserverContext
                         return;
                     }
 
-                    if (ProxyContext.this.remoteConnectionStatusRecord.put(changeName, RECORD_CONNECTED) != RECORD_CONNECTED)
-                    {
-                        ProxyContext.this.context.publishAtomicChange(RECORD_CONNECTION_STATUS_NAME);
-                    }
-
                     IRecord record = ProxyContext.this.context.getRecord(name);
                     final boolean emptyChange = changeToApply.isEmpty();
                     if (record == null)
@@ -1003,6 +998,12 @@ public final class ProxyContext implements IObserverContext
                         switch(ProxyContext.this.imageDeltaProcessor.processRxChange(changeToApply, name, record))
                         {
                             case ImageDeltaChangeProcessor.PUBLISH:
+
+                                if (ProxyContext.this.remoteConnectionStatusRecord.put(changeName, RECORD_CONNECTED) != RECORD_CONNECTED)
+                                {
+                                    ProxyContext.this.context.publishAtomicChange(RECORD_CONNECTION_STATUS_NAME);
+                                }
+
                                 // note: use the record.getSequence() as this will be the DELTA
                                 // sequence if an image was received and then cached deltas applied
                                 // on top of it
