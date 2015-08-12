@@ -318,6 +318,7 @@ public class Publisher
             this.start = System.currentTimeMillis();
             this.client = client;
             scheduleStatsUpdateTask();
+            Log.log(this, "Constructed for ", ObjectUtils.safeToString(client));
         }
 
         void scheduleStatsUpdateTask()
