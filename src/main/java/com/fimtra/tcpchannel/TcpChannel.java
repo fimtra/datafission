@@ -432,11 +432,11 @@ public class TcpChannel implements ITransportChannel
 
         if (e == null || e.length == 0)
         {
-            Log.log(this, "Destroying:", reason, ", ", ObjectUtils.safeToString(this));
+            Log.log(this, reason, ", destroying ", ObjectUtils.safeToString(this));
         }
         else
         {
-            Log.log(this, "Destroying:" + reason + ", " + ObjectUtils.safeToString(this), e[0]);
+            Log.log(this, reason + ", destroying " + ObjectUtils.safeToString(this), e[0]);
         }
 
         try
