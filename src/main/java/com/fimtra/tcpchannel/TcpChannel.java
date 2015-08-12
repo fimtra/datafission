@@ -328,6 +328,25 @@ public class TcpChannel implements ITransportChannel
                 default :
                     this.rxData++;
             }
+
+            // mark connected when we receive the first message (all channels send a heartbeat or
+            // data as the first action they perform)
+            if (!this.onChannelConnectedCalled)
+            {
+                this.onChannelConnectedCalled = true;
+                Log.log(this, "Connected ", ObjectUtils.safeToString(this.socketChannel));
+                try
+                {
+                    this.receiver.onChannelConnected(TcpChannel.this);
+                }
+                catch (Exception e)
+                {
+                    Log.log(this,
+                        ObjectUtils.safeToString(this) + " receiver " + ObjectUtils.safeToString(this.receiver)
+                            + " threw exception during onChannelConnected", e);
+                }
+            }
+
             this.readerWriter.readFrames(this.readFrames);
 
             byte[] data = null;
@@ -352,12 +371,6 @@ public class TcpChannel implements ITransportChannel
                         if (ChannelUtils.isHeartbeatSignal(data))
                         {
                             ChannelUtils.WATCHDOG.onHeartbeat(TcpChannel.this);
-                            if (!this.onChannelConnectedCalled)
-                            {
-                                this.onChannelConnectedCalled = true;
-                                Log.log(this, "Connected ", ObjectUtils.safeToString(this.socketChannel));
-                                this.receiver.onChannelConnected(TcpChannel.this);
-                            }
                             break;
                         }
                         //$FALL-THROUGH$
@@ -370,7 +383,7 @@ public class TcpChannel implements ITransportChannel
                         {
                             Log.log(this,
                                 ObjectUtils.safeToString(this) + " receiver " + ObjectUtils.safeToString(this.receiver)
-                                    + " could not handle data", e);
+                                    + " threw exception during onDataReceived", e);
                         }
                 }
             }
