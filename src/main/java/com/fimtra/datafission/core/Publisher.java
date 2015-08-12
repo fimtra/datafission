@@ -309,9 +309,11 @@ public class Publisher
         volatile long messagesPublished;
         volatile long bytesPublished;
         String identity;
+        volatile boolean active;
 
         ProxyContextPublisher(ITransportChannel client, ICodec codec)
         {
+            this.active = true;
             this.codec = codec;
             this.start = System.currentTimeMillis();
             this.client = client;
@@ -350,10 +352,9 @@ public class Publisher
                 @Override
                 public void run()
                 {
-                    if (!ProxyContextPublisher.this.client.isConnected())
+                    if (!ProxyContextPublisher.this.active)
                     {
-                        Log.log(this, "Not connected ", ObjectUtils.safeToString(ProxyContextPublisher.this.client));
-                        destroy();
+                        Publisher.this.connectionsRecord.removeSubMap(getTransmissionStatisticsFieldName(ProxyContextPublisher.this.client));
                         return;
                     }
 
@@ -382,11 +383,15 @@ public class Publisher
                     this.lastMessagesPublished = ProxyContextPublisher.this.messagesPublished;
                     this.lastBytesPublished = ProxyContextPublisher.this.bytesPublished;
 
-                    if (Publisher.this.active)
+                    if (ProxyContextPublisher.this.active)
                     {
                         ProxyContextPublisher.this.statsUpdateTask =
                             Publisher.this.context.getUtilityExecutor().schedule(this,
                                 Publisher.this.contextConnectionsRecordPublishPeriodMillis / 2, TimeUnit.MILLISECONDS);
+                    }
+                    else
+                    {
+                        Publisher.this.connectionsRecord.removeSubMap(getTransmissionStatisticsFieldName(ProxyContextPublisher.this.client));
                     }
                 }
             }, Publisher.this.contextConnectionsRecordPublishPeriodMillis / 2, TimeUnit.MILLISECONDS);
@@ -432,6 +437,7 @@ public class Publisher
 
         void destroy()
         {
+            this.active = false;
             this.statsUpdateTask.cancel(false);
             Publisher.this.connectionsRecord.removeSubMap(getTransmissionStatisticsFieldName(ProxyContextPublisher.this.client));
             for (String name : this.subscriptions)
@@ -491,7 +497,6 @@ public class Publisher
     final IEndPointService server;
     final IRecord connectionsRecord;
     final ProxyContextMultiplexer multiplexer;
-    volatile boolean active;
     volatile long contextConnectionsRecordPublishPeriodMillis = 10000;
     ScheduledFuture contextConnectionsRecordPublishTask;
     volatile long messagesPublished;
@@ -615,7 +620,6 @@ public class Publisher
                 });
 
         this.multiplexer = new ProxyContextMultiplexer(this.server);
-        this.active = true;
     }
 
     public long getContextConnectionsRecordPublishPeriodMillis()
@@ -669,7 +673,6 @@ public class Publisher
 
     public void destroy()
     {
-        this.active = false;
         for (ProxyContextPublisher proxyContextPublisher : this.proxyContextPublishers.values())
         {
             proxyContextPublisher.destroy();
