@@ -35,6 +35,31 @@ public abstract class StringUtils
     private static final String emptyString = "";
 
     /**
+     * Find out if a char[] starts with a prefix
+     * 
+     * @param prefix
+     *            the prefix
+     * @param other
+     *            the char[] to find the prefix in
+     * @return <code>true</code> if the char[] starts with prefix
+     */
+    public static boolean startsWith(char[] prefix, char[] other)
+    {
+        if (prefix.length != 0 && prefix.length <= other.length)
+        {
+            for (int i = 0; i < prefix.length; i++)
+            {
+                if (other[i] != prefix[i])
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Will return an empty string if str is null, otherwise it will return str with trailing and
      * leading whitespace removed.
      */
@@ -79,7 +104,7 @@ public abstract class StringUtils
         {
             return null;
         }
-        
+
         final char[] chars = stringToSplit.toCharArray();
         List<String> tokens = new LinkedList<String>();
         StringBuilder sb = new StringBuilder();
@@ -139,7 +164,7 @@ public abstract class StringUtils
         {
             return null;
         }
-        
+
         StringBuilder sb = new StringBuilder(stringsToJoin.size() * 30);
         for (int i = 0; i < stringsToJoin.size(); i++)
         {
@@ -165,7 +190,7 @@ public abstract class StringUtils
     {
         if (string == null)
         {
-            sb.append((String)null);
+            sb.append((String) null);
             return;
         }
 
