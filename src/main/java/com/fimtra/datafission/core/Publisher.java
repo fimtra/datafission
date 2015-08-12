@@ -515,7 +515,13 @@ public class Publisher
                     @Override
                     public void onChannelConnected(ITransportChannel channel)
                     {
-                        // todo create the ProxyContextPublisher here
+                        // construct the ProxyContextPublisher
+                        synchronized (Publisher.this.proxyContextPublishers)
+                        {
+                            Publisher.this.proxyContextPublishers.put(channel, new ProxyContextPublisher(channel,
+                                Publisher.this.mainCodec.newInstance()));
+                        }
+
                         final Map<String, IValue> submapConnections =
                             Publisher.this.connectionsRecord.getOrCreateSubMap(getTransmissionStatisticsFieldName(channel));
                         final EndPointAddress endPointAddress = Publisher.this.server.getEndPointAddress();
@@ -647,6 +653,7 @@ public class Publisher
                 }, this.contextConnectionsRecordPublishPeriodMillis, this.contextConnectionsRecordPublishPeriodMillis,
                 TimeUnit.MILLISECONDS);
 
+        // todo wrong synchronization...
         // reschedule the stats update tasks at the new period
         for (ProxyContextPublisher proxyContextPublisher : this.proxyContextPublishers.values())
         {
@@ -780,14 +787,14 @@ public class Publisher
 
     ProxyContextPublisher getProxyContextPublisher(ITransportChannel client)
     {
-        // todo this lazy construction is bad
         synchronized (this.proxyContextPublishers)
         {
-            ProxyContextPublisher proxyContextPublisher = this.proxyContextPublishers.get(client);
+            final ProxyContextPublisher proxyContextPublisher = this.proxyContextPublishers.get(client);
             if (proxyContextPublisher == null)
             {
-                proxyContextPublisher = new ProxyContextPublisher(client, this.mainCodec.newInstance());
-                this.proxyContextPublishers.put(client, proxyContextPublisher);
+                // ProxyContextPublisher only constructed on channel connection!
+                throw new NullPointerException("No ProxyContextPublisher for " + ObjectUtils.safeToString(client)
+                    + ", is the channel closed?");
             }
             return proxyContextPublisher;
         }
