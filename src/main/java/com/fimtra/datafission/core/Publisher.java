@@ -317,7 +317,25 @@ public class Publisher
             this.codec = codec;
             this.start = System.currentTimeMillis();
             this.client = client;
+
+            // add the connection record static parts
+            final Map<String, IValue> submapConnections =
+                Publisher.this.connectionsRecord.getOrCreateSubMap(getTransmissionStatisticsFieldName(client));
+            final EndPointAddress endPointAddress = Publisher.this.server.getEndPointAddress();
+            final String clientSocket = client.getEndPointDescription();
+            submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_ID, new TextValue(
+                Publisher.this.context.getName()));
+            submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_NODE, new TextValue(
+                endPointAddress.getNode()));
+            submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_PORT,
+                LongValue.valueOf(endPointAddress.getPort()));
+            submapConnections.put(IContextConnectionsRecordFields.PROXY_ENDPOINT, new TextValue(
+                clientSocket));
+            submapConnections.put(IContextConnectionsRecordFields.PROTOCOL, new TextValue(
+                getProxyContextPublisher(client).codec.getClass().getSimpleName()));
+            
             scheduleStatsUpdateTask();
+            
             Log.log(this, "Constructed for ", ObjectUtils.safeToString(client));
         }
 
@@ -516,26 +534,8 @@ public class Publisher
                     public void onChannelConnected(ITransportChannel channel)
                     {
                         // construct the ProxyContextPublisher
-                        synchronized (Publisher.this.proxyContextPublishers)
-                        {
-                            Publisher.this.proxyContextPublishers.put(channel, new ProxyContextPublisher(channel,
-                                Publisher.this.mainCodec.newInstance()));
-                        }
-
-                        final Map<String, IValue> submapConnections =
-                            Publisher.this.connectionsRecord.getOrCreateSubMap(getTransmissionStatisticsFieldName(channel));
-                        final EndPointAddress endPointAddress = Publisher.this.server.getEndPointAddress();
-                        final String clientSocket = channel.getEndPointDescription();
-                        submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_ID, new TextValue(
-                            Publisher.this.context.getName()));
-                        submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_NODE, new TextValue(
-                            endPointAddress.getNode()));
-                        submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_PORT,
-                            LongValue.valueOf(endPointAddress.getPort()));
-                        submapConnections.put(IContextConnectionsRecordFields.PROXY_ENDPOINT, new TextValue(
-                            clientSocket));
-                        submapConnections.put(IContextConnectionsRecordFields.PROTOCOL, new TextValue(
-                            getProxyContextPublisher(channel).codec.getClass().getSimpleName()));
+                        Publisher.this.proxyContextPublishers.put(channel, new ProxyContextPublisher(channel,
+                            Publisher.this.mainCodec.newInstance()));
                     }
 
                     @Override
@@ -610,8 +610,11 @@ public class Publisher
                     @Override
                     public void onChannelClosed(ITransportChannel channel)
                     {
-                        remove(channel);
-                        Publisher.this.connectionsRecord.removeSubMap(getTransmissionStatisticsFieldName(channel));
+                        ProxyContextPublisher clientPublisher = Publisher.this.proxyContextPublishers.remove(channel);
+                        if (clientPublisher != null)
+                        {
+                            clientPublisher.destroy();
+                        }
                     }
                 });
 
@@ -672,15 +675,12 @@ public class Publisher
     public void destroy()
     {
         this.active = false;
-        final HashSet<ITransportChannel> publishers;
-        synchronized (this.proxyContextPublishers)
+        for (ProxyContextPublisher proxyContextPublisher : this.proxyContextPublishers.values())
         {
-            publishers = new HashSet<ITransportChannel>(this.proxyContextPublishers.keySet());
+            proxyContextPublisher.destroy();
         }
-        for (ITransportChannel channel : publishers)
-        {
-            remove(channel);
-        }
+        this.proxyContextPublishers.clear();
+
         this.server.destroy();
         this.contextConnectionsRecordPublishTask.cancel(true);
     }
@@ -787,6 +787,7 @@ public class Publisher
 
     ProxyContextPublisher getProxyContextPublisher(ITransportChannel client)
     {
+        // todo can this be replaced with a ConcurrentHashMap?
         synchronized (this.proxyContextPublishers)
         {
             final ProxyContextPublisher proxyContextPublisher = this.proxyContextPublishers.get(client);
@@ -797,16 +798,6 @@ public class Publisher
                     + ", is the channel closed?");
             }
             return proxyContextPublisher;
-        }
-    }
-
-    // todo rename to destroyProxyContextPublisherFor
-    void remove(ITransportChannel client)
-    {
-        ProxyContextPublisher clientPublisher = this.proxyContextPublishers.remove(client);
-        if (clientPublisher != null)
-        {
-            clientPublisher.destroy();
         }
     }
 
