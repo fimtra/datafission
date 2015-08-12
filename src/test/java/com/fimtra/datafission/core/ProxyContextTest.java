@@ -49,6 +49,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.fimtra.channel.ChannelUtils;
+import com.fimtra.datafission.DataFissionProperties;
 import com.fimtra.datafission.IObserverContext.ISystemRecordNames;
 import com.fimtra.datafission.IPermissionFilter;
 import com.fimtra.datafission.IRecord;
@@ -109,6 +110,8 @@ public class ProxyContextTest
     @Before
     public void setUp() throws Exception
     {
+        // no way to test this really
+        System.getProperties().put(DataFissionProperties.Names.IGNORE_LOGGING_RX_COMMANDS_WITH_PREFIX, "rpc|concat2");
         ChannelUtils.WATCHDOG.configure(200, 10);
         observers.clear();
         // cycle the ports for each test
@@ -1558,7 +1561,7 @@ public class ProxyContextTest
         this.candidate.getRpc("getTime").executeNoResponse();
         assertTrue(latch.await(10, TimeUnit.SECONDS));
     }
-
+    
     @Test
     public void testRpcWithSimpleArgs() throws TimeOutException, ExecutionException, InterruptedException, IOException
     {
@@ -1578,13 +1581,42 @@ public class ProxyContextTest
             }
         }, TypeEnum.TEXT, "concat", TypeEnum.TEXT, TypeEnum.DOUBLE, TypeEnum.LONG, TypeEnum.TEXT);
         this.context.createRpc(rpc);
+        
+        waitForRpcToBePublished(rpc);
+        
+        IValue result =
+                this.candidate.getRpc("concat").execute(new TextValue("someValue1"), new DoubleValue(Double.NaN),
+                    LongValue.valueOf(2345), new TextValue("anotherText value here!"));
+        assertEquals("someValue1,NaN,2345,anotherText value here!,", result.textValue());
+    }
+
+    @Test
+    public void testRpcWithSimpleArgsNoLogging() throws TimeOutException, ExecutionException, InterruptedException, IOException
+    {
+        createComponents("testRpcWithSimpleArgsNoLogging");
+        this.executor.shutdownNow();
+        RpcInstance rpc = new RpcInstance(new IRpcExecutionHandler()
+        {
+            @Override
+            public IValue execute(IValue... args) throws TimeOutException, ExecutionException
+            {
+                StringBuilder sb = new StringBuilder();
+                for (IValue iValue : args)
+                {
+                    sb.append(iValue.textValue()).append(",");
+                }
+                return new TextValue(sb.toString());
+            }
+        }, TypeEnum.TEXT, "concat2", TypeEnum.TEXT, TypeEnum.DOUBLE, TypeEnum.LONG, TypeEnum.TEXT);
+        this.context.createRpc(rpc);
 
         waitForRpcToBePublished(rpc);
 
         IValue result =
-            this.candidate.getRpc("concat").execute(new TextValue("someValue1"), new DoubleValue(Double.NaN),
+            this.candidate.getRpc("concat2").execute(new TextValue("someValue1"), new DoubleValue(Double.NaN),
                 LongValue.valueOf(2345), new TextValue("anotherText value here!"));
         assertEquals("someValue1,NaN,2345,anotherText value here!,", result.textValue());
+        Log.banner(this, "There should be no occurrences of rpc|concat2");
     }
 
     @Test

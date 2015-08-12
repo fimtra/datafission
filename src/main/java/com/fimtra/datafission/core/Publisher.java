@@ -34,6 +34,7 @@ import com.fimtra.channel.IEndPointService;
 import com.fimtra.channel.IReceiver;
 import com.fimtra.channel.ITransportChannel;
 import com.fimtra.datafission.DataFissionProperties;
+import com.fimtra.datafission.DataFissionProperties.Values;
 import com.fimtra.datafission.ICodec;
 import com.fimtra.datafission.ICodec.CommandEnum;
 import com.fimtra.datafission.IObserverContext.ISystemRecordNames;
@@ -76,6 +77,32 @@ public class Publisher
      * {@link ISystemRecordNames#CONTEXT_STATUS}
      */
     public static final String ATTR_DELIM = ",";
+
+    final static char[][] IGNORE_RX_COMMANDS_PREFIX;
+
+    static
+    {
+        final String[] stringPrefixes =
+            Values.IGNORE_LOGGING_RX_COMMANDS_WITH_PREFIX.toArray(new String[Values.IGNORE_LOGGING_RX_COMMANDS_WITH_PREFIX.size()]);
+        IGNORE_RX_COMMANDS_PREFIX = new char[stringPrefixes.length][];
+        for (int i = 0; i < stringPrefixes.length; i++)
+        {
+            String prefix = stringPrefixes[i];
+            IGNORE_RX_COMMANDS_PREFIX[i] = prefix.toCharArray();
+        }
+    }
+
+    static boolean canLog(char[] decodedMessage)
+    {
+        for (int i = 0; i < IGNORE_RX_COMMANDS_PREFIX.length; i++)
+        {
+            if (StringUtils.startsWith(IGNORE_RX_COMMANDS_PREFIX[i], decodedMessage))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * @return the field name for the transmission statistics for a connection to a single
@@ -509,15 +536,18 @@ public class Publisher
                                 final int maxLogLength = 128;
                                 if (decodedMessage instanceof char[])
                                 {
-                                    if (((char[]) decodedMessage).length < maxLogLength)
+                                    if (canLog((char[]) decodedMessage))
                                     {
-                                        Log.log(Publisher.class, "(<-) '", new String((char[]) decodedMessage),
-                                            "' from ", ObjectUtils.safeToString(source));
-                                    }
-                                    else
-                                    {
-                                        Log.log(Publisher.class, "(<-) '", new String((char[]) decodedMessage, 0,
-                                            maxLogLength), "...(too long)' from ", ObjectUtils.safeToString(source));
+                                        if (((char[]) decodedMessage).length < maxLogLength)
+                                        {
+                                            Log.log(Publisher.class, "(<-) '", new String((char[]) decodedMessage),
+                                                "' from ", ObjectUtils.safeToString(source));
+                                        }
+                                        else
+                                        {
+                                            Log.log(Publisher.class, "(<-) '", new String((char[]) decodedMessage, 0,
+                                                maxLogLength), "...(too long)' from ", ObjectUtils.safeToString(source));
+                                        }
                                     }
                                 }
                                 else
