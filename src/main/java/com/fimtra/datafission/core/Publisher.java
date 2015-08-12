@@ -329,7 +329,7 @@ public class Publisher
                 LongValue.valueOf(endPointAddress.getPort()));
             submapConnections.put(IContextConnectionsRecordFields.PROXY_ENDPOINT, new TextValue(clientSocket));
             submapConnections.put(IContextConnectionsRecordFields.PROTOCOL, new TextValue(
-                getProxyContextPublisher(client).codec.getClass().getSimpleName()));
+                this.codec.getClass().getSimpleName()));
 
             scheduleStatsUpdateTask();
 
