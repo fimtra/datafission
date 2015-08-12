@@ -335,6 +335,13 @@ public class Publisher
                 @Override
                 public void run()
                 {
+                    if (!ProxyContextPublisher.this.client.isConnected())
+                    {
+                        Log.log(this, "Not connected ", ObjectUtils.safeToString(ProxyContextPublisher.this.client));
+                        destroy();
+                        return;
+                    }
+
                     final Map<String, IValue> submapConnections =
                         Publisher.this.connectionsRecord.getOrCreateSubMap(getTransmissionStatisticsFieldName(ProxyContextPublisher.this.client));
 
@@ -411,10 +418,12 @@ public class Publisher
         void destroy()
         {
             this.statsUpdateTask.cancel(false);
+            Publisher.this.connectionsRecord.removeSubMap(getTransmissionStatisticsFieldName(ProxyContextPublisher.this.client));
             for (String name : this.subscriptions)
             {
                 unsubscribe(name);
             }
+            Log.log(this, "Destroyed");
         }
 
         void setProxyContextIdentity(String identity)
@@ -506,6 +515,7 @@ public class Publisher
                     @Override
                     public void onChannelConnected(ITransportChannel channel)
                     {
+                        // todo create the ProxyContextPublisher here
                         final Map<String, IValue> submapConnections =
                             Publisher.this.connectionsRecord.getOrCreateSubMap(getTransmissionStatisticsFieldName(channel));
                         final EndPointAddress endPointAddress = Publisher.this.server.getEndPointAddress();
@@ -770,6 +780,7 @@ public class Publisher
 
     ProxyContextPublisher getProxyContextPublisher(ITransportChannel client)
     {
+        // todo this lazy construction is bad
         synchronized (this.proxyContextPublishers)
         {
             ProxyContextPublisher proxyContextPublisher = this.proxyContextPublishers.get(client);
@@ -782,6 +793,7 @@ public class Publisher
         }
     }
 
+    // todo rename to destroyProxyContextPublisherFor
     void remove(ITransportChannel client)
     {
         ProxyContextPublisher clientPublisher = this.proxyContextPublishers.remove(client);
