@@ -16,11 +16,9 @@
 package com.fimtra.datafission.core;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
@@ -323,19 +321,18 @@ public class Publisher
                 Publisher.this.connectionsRecord.getOrCreateSubMap(getTransmissionStatisticsFieldName(client));
             final EndPointAddress endPointAddress = Publisher.this.server.getEndPointAddress();
             final String clientSocket = client.getEndPointDescription();
-            submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_ID, new TextValue(
-                Publisher.this.context.getName()));
-            submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_NODE, new TextValue(
-                endPointAddress.getNode()));
+            submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_ID,
+                new TextValue(Publisher.this.context.getName()));
+            submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_NODE,
+                new TextValue(endPointAddress.getNode()));
             submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_PORT,
                 LongValue.valueOf(endPointAddress.getPort()));
-            submapConnections.put(IContextConnectionsRecordFields.PROXY_ENDPOINT, new TextValue(
-                clientSocket));
+            submapConnections.put(IContextConnectionsRecordFields.PROXY_ENDPOINT, new TextValue(clientSocket));
             submapConnections.put(IContextConnectionsRecordFields.PROTOCOL, new TextValue(
                 getProxyContextPublisher(client).codec.getClass().getSimpleName()));
-            
+
             scheduleStatsUpdateTask();
-            
+
             Log.log(this, "Constructed for ", ObjectUtils.safeToString(client));
         }
 
@@ -518,8 +515,7 @@ public class Publisher
         super();
         this.context = context;
         this.lock = new ReentrantLock();
-        this.proxyContextPublishers =
-            Collections.synchronizedMap(new HashMap<ITransportChannel, Publisher.ProxyContextPublisher>());
+        this.proxyContextPublishers = new ConcurrentHashMap<ITransportChannel, Publisher.ProxyContextPublisher>();
         this.connectionsRecord = Context.getRecordInternal(this.context, ISystemRecordNames.CONTEXT_CONNECTIONS);
 
         // prepare to periodically publish status changes
@@ -656,7 +652,6 @@ public class Publisher
                 }, this.contextConnectionsRecordPublishPeriodMillis, this.contextConnectionsRecordPublishPeriodMillis,
                 TimeUnit.MILLISECONDS);
 
-        // todo wrong synchronization...
         // reschedule the stats update tasks at the new period
         for (ProxyContextPublisher proxyContextPublisher : this.proxyContextPublishers.values())
         {
@@ -787,18 +782,14 @@ public class Publisher
 
     ProxyContextPublisher getProxyContextPublisher(ITransportChannel client)
     {
-        // todo can this be replaced with a ConcurrentHashMap?
-        synchronized (this.proxyContextPublishers)
+        final ProxyContextPublisher proxyContextPublisher = this.proxyContextPublishers.get(client);
+        if (proxyContextPublisher == null)
         {
-            final ProxyContextPublisher proxyContextPublisher = this.proxyContextPublishers.get(client);
-            if (proxyContextPublisher == null)
-            {
-                // ProxyContextPublisher only constructed on channel connection!
-                throw new NullPointerException("No ProxyContextPublisher for " + ObjectUtils.safeToString(client)
-                    + ", is the channel closed?");
-            }
-            return proxyContextPublisher;
+            // ProxyContextPublisher only constructed on channel connection!
+            throw new NullPointerException("No ProxyContextPublisher for " + ObjectUtils.safeToString(client)
+                + ", is the channel closed?");
         }
+        return proxyContextPublisher;
     }
 
     /**
