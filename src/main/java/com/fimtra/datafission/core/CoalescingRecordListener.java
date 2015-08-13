@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.fimtra.datafission.IObserverContext;
 import com.fimtra.datafission.IPublisherContext;
@@ -31,7 +32,6 @@ import com.fimtra.datafission.IRecordListener;
 import com.fimtra.datafission.IValue;
 import com.fimtra.thimble.ICoalescingRunnable;
 import com.fimtra.thimble.ThimbleExecutor;
-import com.fimtra.util.Locks;
 
 /**
  * Provides coalescing behaviour for record updates to solve fast-producer scenarios.
@@ -114,15 +114,14 @@ public class CoalescingRecordListener implements IRecordListener
             if (image != null)
             {
                 final List<IRecordChange> changes;
-                final Lock lock = CoalescingRecordListener.this.locks.getLock(this.name);
-                lock.lock();
+                CoalescingRecordListener.this.lock.lock();
                 try
                 {
                     changes = CoalescingRecordListener.this.cachedAtomicChanges.remove(this.name);
                 }
                 finally
                 {
-                    lock.unlock();
+                    CoalescingRecordListener.this.lock.unlock();
                 }
                 if (changes != null)
                 {
@@ -146,7 +145,7 @@ public class CoalescingRecordListener implements IRecordListener
         }
     }
 
-    final Locks locks;
+    final Lock lock;
     final Object coalescingContext;
     final ThimbleExecutor executor;
     final IRecordListener delegate;
@@ -193,15 +192,14 @@ public class CoalescingRecordListener implements IRecordListener
         this.delegate = delegate;
         this.coalescingContext = coalescingContext;
         this.cachePolicy = cachePolicy;
-        this.locks = new Locks();
+        this.lock = new ReentrantLock();
     }
 
     @Override
     public void onChange(final IRecord imageCopy, final IRecordChange atomicChange)
     {
         final String name = imageCopy.getName();
-        final Lock lock = this.locks.getLock(name);
-        lock.lock();
+        this.lock.lock();
         try
         {
             List<IRecordChange> list = this.cachedAtomicChanges.get(name);
@@ -218,7 +216,7 @@ public class CoalescingRecordListener implements IRecordListener
         }
         finally
         {
-            lock.unlock();
+            this.lock.unlock();
         }
 
         this.executor.execute(new CoalescingRecordUpdateRunnable(name, this.coalescingContext));
