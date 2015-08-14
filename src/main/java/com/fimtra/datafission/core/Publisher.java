@@ -16,8 +16,10 @@
 package com.fimtra.datafission.core;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
@@ -352,12 +354,6 @@ public class Publisher
                 @Override
                 public void run()
                 {
-                    if (!ProxyContextPublisher.this.active)
-                    {
-                        Publisher.this.connectionsRecord.removeSubMap(getTransmissionStatisticsFieldName(ProxyContextPublisher.this.client));
-                        return;
-                    }
-
                     final Map<String, IValue> submapConnections =
                         Publisher.this.connectionsRecord.getOrCreateSubMap(getTransmissionStatisticsFieldName(ProxyContextPublisher.this.client));
 
@@ -388,10 +384,6 @@ public class Publisher
                         ProxyContextPublisher.this.statsUpdateTask =
                             Publisher.this.context.getUtilityExecutor().schedule(this,
                                 Publisher.this.contextConnectionsRecordPublishPeriodMillis / 2, TimeUnit.MILLISECONDS);
-                    }
-                    else
-                    {
-                        Publisher.this.connectionsRecord.removeSubMap(getTransmissionStatisticsFieldName(ProxyContextPublisher.this.client));
                     }
                 }
             }, Publisher.this.contextConnectionsRecordPublishPeriodMillis / 2, TimeUnit.MILLISECONDS);
@@ -439,7 +431,6 @@ public class Publisher
         {
             this.active = false;
             this.statsUpdateTask.cancel(false);
-            Publisher.this.connectionsRecord.removeSubMap(getTransmissionStatisticsFieldName(ProxyContextPublisher.this.client));
             for (String name : this.subscriptions)
             {
                 unsubscribe(name);
@@ -649,6 +640,19 @@ public class Publisher
                     {
                         if (this.publishAtomicChange.getCount() == 0)
                         {
+                            // check each connection is still active - remove if not
+                            final Set<String> connectionIds =
+                                new HashSet<String>(Publisher.this.connectionsRecord.getSubMapKeys());
+                            final Set<ITransportChannel> channels = Publisher.this.proxyContextPublishers.keySet();
+                            for (ITransportChannel channel : channels)
+                            {
+                                connectionIds.remove(getTransmissionStatisticsFieldName(channel));
+                            }
+                            for (String connectionId : connectionIds)
+                            {
+                                Publisher.this.connectionsRecord.removeSubMap(connectionId);
+                            }
+
                             this.publishAtomicChange =
                                 Publisher.this.context.publishAtomicChange(ISystemRecordNames.CONTEXT_CONNECTIONS);
                         }
