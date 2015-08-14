@@ -56,7 +56,7 @@ public final class RpcInstance implements IRpcInstance
 {
     static final String RPC_RECORD_RESULT_PREFIX = "_RPC_";
     static final TextValue NO_ACK = TextValue.valueOf(RPC_RECORD_RESULT_PREFIX);
-    
+
     /**
      * Handles the execution of the RPC.
      * <p>
@@ -172,37 +172,42 @@ public final class RpcInstance implements IRpcInstance
                 final String rpcName = decodeRpcName(callDetails);
                 final IValue[] args = decodeArgs(callDetails);
                 final String resultRecordName = decodeResultRecordName(callDetails);
-                final Map<String, IValue> resultEntries = new HashMap<String, IValue>();
 
-                IRecordChange atomicChange =
-                    new AtomicChange(resultRecordName, resultEntries, ContextUtils.EMPTY_MAP, ContextUtils.EMPTY_MAP);
-                final boolean ackRequired = !NO_ACK.textValue().equals(resultRecordName);
-                if (ackRequired)
+                if (NO_ACK.textValue().equals(resultRecordName))
                 {
+                    try
+                    {
+                        this.context.getRpc(rpcName).execute(args);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.log(CallReceiver.class, "Exception handling NO-ACK RPC: " + callDetails, e);
+                    }
+                }
+                else
+                {
+                    final Map<String, IValue> resultEntries = new HashMap<String, IValue>(2);
+                   
                     // tell the remote caller we have started
                     Log.log(CallReceiver.class, "(->) STARTED ", resultRecordName);
-                    this.caller.sendAsync(this.codec.getTxMessageForAtomicChange(atomicChange));
-                }
+                    this.caller.sendAsync(this.codec.getTxMessageForAtomicChange(new AtomicChange(resultRecordName,
+                        resultEntries, ContextUtils.EMPTY_MAP, ContextUtils.EMPTY_MAP)));
 
-                try
-                {
-                    IValue result = this.context.getRpc(rpcName).execute(args);
-                    resultEntries.put(RESULT, result);
-                }
-                catch (Exception e)
-                {
-                    resultEntries.put(EXCEPTION, new TextValue(e.toString()));
-                }
+                    try
+                    {
+                        IValue result = this.context.getRpc(rpcName).execute(args);
+                        resultEntries.put(RESULT, result);
+                    }
+                    catch (Exception e)
+                    {
+                        resultEntries.put(EXCEPTION, new TextValue(e.toString()));
+                        Log.log(CallReceiver.class, "Exception handling RPC: " + callDetails, e);
+                    }
 
-                if (ackRequired)
-                {
-                    // build up the result record change and send back
-                    atomicChange =
-                        new AtomicChange(resultRecordName, resultEntries, ContextUtils.EMPTY_MAP,
-                            ContextUtils.EMPTY_MAP);
                     Log.log(CallReceiver.class, "(->) FINISHED ", resultRecordName, ", ",
                         ContextUtils.mapToString(resultEntries));
-                    this.caller.sendAsync(this.codec.getTxMessageForAtomicChange(atomicChange));
+                    this.caller.sendAsync(this.codec.getTxMessageForAtomicChange(new AtomicChange(resultRecordName,
+                        resultEntries, ContextUtils.EMPTY_MAP, ContextUtils.EMPTY_MAP)));
                 }
             }
         }
