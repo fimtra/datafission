@@ -25,7 +25,7 @@ import com.fimtra.util.is;
  */
 public final class LongValue extends AbstractValue
 {
-    static final int POOL_SIZE = 256;
+    static final int POOL_SIZE = 2048;
     static final LongValue[] pool = new LongValue[POOL_SIZE];
     static final int poolTop = POOL_SIZE / 2;
     static final int poolBottom = -((POOL_SIZE / 2) - 1);
