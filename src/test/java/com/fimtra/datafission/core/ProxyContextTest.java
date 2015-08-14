@@ -35,8 +35,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -823,11 +825,12 @@ public class ProxyContextTest
                 {
                     return fieldCountForSingleConnection;
                 }
-                
+
                 @Override
                 public String getFailureReason()
                 {
-                    return "REMOTE_CONTEXT_CONNECTIONS record was: " + candidate2.getRecord(IRemoteSystemRecordNames.REMOTE_CONTEXT_CONNECTIONS);
+                    return "REMOTE_CONTEXT_CONNECTIONS record was: "
+                        + candidate2.getRecord(IRemoteSystemRecordNames.REMOTE_CONTEXT_CONNECTIONS);
                 }
             });
         }
@@ -1561,7 +1564,7 @@ public class ProxyContextTest
         this.candidate.getRpc("getTime").executeNoResponse();
         assertTrue(latch.await(10, TimeUnit.SECONDS));
     }
-    
+
     @Test
     public void testRpcWithSimpleArgs() throws TimeOutException, ExecutionException, InterruptedException, IOException
     {
@@ -1581,17 +1584,86 @@ public class ProxyContextTest
             }
         }, TypeEnum.TEXT, "concat", TypeEnum.TEXT, TypeEnum.DOUBLE, TypeEnum.LONG, TypeEnum.TEXT);
         this.context.createRpc(rpc);
-        
+
         waitForRpcToBePublished(rpc);
-        
+
         IValue result =
-                this.candidate.getRpc("concat").execute(new TextValue("someValue1"), new DoubleValue(Double.NaN),
-                    LongValue.valueOf(2345), new TextValue("anotherText value here!"));
+            this.candidate.getRpc("concat").execute(new TextValue("someValue1"), new DoubleValue(Double.NaN),
+                LongValue.valueOf(2345), new TextValue("anotherText value here!"));
         assertEquals("someValue1,NaN,2345,anotherText value here!,", result.textValue());
     }
 
     @Test
-    public void testRpcWithSimpleArgsNoLogging() throws TimeOutException, ExecutionException, InterruptedException, IOException
+    public void testMultithreadRpcWithSimpleArgs() throws TimeOutException, ExecutionException, InterruptedException,
+        IOException
+    {
+        createComponents("testMultithreadRpcWithSimpleArgs");
+        this.executor.shutdownNow();
+        RpcInstance rpc = new RpcInstance(new IRpcExecutionHandler()
+        {
+            @Override
+            public IValue execute(IValue... args) throws TimeOutException, ExecutionException
+            {
+                StringBuilder sb = new StringBuilder();
+                for (IValue iValue : args)
+                {
+                    sb.append(iValue.textValue()).append(",");
+                }
+                return new TextValue(sb.toString());
+            }
+        }, TypeEnum.TEXT, "concat", TypeEnum.TEXT, TypeEnum.DOUBLE, TypeEnum.LONG, TypeEnum.TEXT);
+        this.context.createRpc(rpc);
+
+        waitForRpcToBePublished(rpc);
+
+        int count = 50;
+        final CountDownLatch completed = new CountDownLatch(count);
+        final CyclicBarrier barrier = new CyclicBarrier(count);
+        final List<String> errors = new ArrayList<String>();
+        for (int i = 0; i < count; i++)
+        {
+            new Thread(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    final String random = "randomValue:" + System.nanoTime();
+                    final IRpcInstance concatRpc = ProxyContextTest.this.candidate.getRpc("concat");
+
+                    // wait for all threads to be ready...
+                    try
+                    {
+                        barrier.await();
+                    }
+                    catch (Exception e)
+                    {
+                    }
+                    try
+                    {
+                        IValue result =
+                            concatRpc.execute(new TextValue(random), new DoubleValue(Double.NaN),
+                                LongValue.valueOf(2345), new TextValue("anotherText value here!"));
+                        final String expected = random + ",NaN,2345,anotherText value here!,";
+                        if (!result.textValue().equals(expected))
+                        {
+                            errors.add("Expected: " + expected + ", but got: " + result.textValue());
+                        }
+                        completed.countDown();
+                    }
+                    catch (Exception e)
+                    {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+        }
+        assertTrue(completed.await(TIMEOUT, TimeUnit.SECONDS));
+        assertEquals("Got errors: " + errors, 0, errors.size());
+    }
+
+    @Test
+    public void testRpcWithSimpleArgsNoLogging() throws TimeOutException, ExecutionException, InterruptedException,
+        IOException
     {
         createComponents("testRpcWithSimpleArgsNoLogging");
         this.executor.shutdownNow();
