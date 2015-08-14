@@ -965,7 +965,7 @@ public final class ProxyContext implements IObserverContext
                 try
                 {
                     final String name = substituteLocalNameWithRemoteName(changeName);
-                    
+
                     final boolean recordIsSubscribed =
                         ProxyContext.this.context.recordObservers.getSubscribersFor(name).length > 0;
                     if (!recordIsSubscribed)
@@ -1193,7 +1193,7 @@ public final class ProxyContext implements IObserverContext
                         {
                             reconnect();
                         }
-                    }, "reconnect-proxy-task").start();
+                    }, "reconnect-proxy[" + ProxyContext.this.getName() + "]").start();
                 }
             }, this.reconnectPeriodMillis, TimeUnit.MILLISECONDS);
         }
