@@ -15,6 +15,7 @@
  */
 package com.fimtra.datafission.field;
 
+import com.fimtra.datafission.IValue;
 import com.fimtra.util.is;
 
 /**
@@ -32,6 +33,22 @@ public final class DoubleValue extends AbstractValue
     public static DoubleValue valueOf(double value)
     {
         return new DoubleValue(value);
+    }
+
+    /**
+     * Get a double from the passed in IValue, returning the defaultValue if the IValue is
+     * <code>null</code> or not a DoubleValue
+     * 
+     * @param target
+     *            the IValue to extract a double from
+     * @param defaultValue
+     *            the default value
+     * @return the double value of the IValue or the defaultValue if the IValue is <code>null</code>
+     *         or not a DoubleValue
+     */
+    public static double get(IValue target, double defaultValue)
+    {
+        return target == null || !(target instanceof DoubleValue) ? defaultValue : target.doubleValue();
     }
 
     /** Initialises to represent NaN. */

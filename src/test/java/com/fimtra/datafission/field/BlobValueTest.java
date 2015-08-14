@@ -19,12 +19,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import com.fimtra.datafission.IValue.TypeEnum;
-import com.fimtra.datafission.field.BlobValue;
 
 /**
  * Tests for the {@link BlobValue}
@@ -133,5 +133,15 @@ public class BlobValueTest
         BlobValue other = new BlobValue();
         other.fromString(this.candidate.textValue());
         assertEquals(this.candidate, other);
+    }
+    
+    @Test
+    public void testGet()
+    {
+        byte[] sdf = new byte[1];
+        assertSame(sdf, BlobValue.get(BlobValue.valueOf(sdf), null));
+        assertNull(BlobValue.get(DoubleValue.valueOf(1), null));
+        assertNull(BlobValue.get(LongValue.valueOf(1), null));
+        assertNull(BlobValue.get(TextValue.valueOf("1"), null));
     }
 }

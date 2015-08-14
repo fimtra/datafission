@@ -56,6 +56,22 @@ public final class LongValue extends AbstractValue
         return new LongValue(value);
     }
 
+    /**
+     * Get a long from the passed in IValue, returning the defaultValue if the IValue is
+     * <code>null</code> or not a LongValue
+     * 
+     * @param target
+     *            the IValue to extract a long from
+     * @param defaultValue
+     *            the default value
+     * @return the long value of the IValue or the defaultValue if the IValue is <code>null</code>
+     *         or not a LongValue
+     */
+    public static long get(IValue target, long defaultValue)
+    {
+        return target == null || !(target instanceof LongValue) ? defaultValue : target.longValue();
+    }
+
     private long value;
 
     /** Initialises to represent 0. */

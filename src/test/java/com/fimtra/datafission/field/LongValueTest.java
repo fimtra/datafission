@@ -23,7 +23,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.fimtra.datafission.IValue.TypeEnum;
-import com.fimtra.datafission.field.LongValue;
 
 /**
  * Tests for the {@link LongValue}
@@ -69,4 +68,12 @@ public class LongValueTest
         }
     }
 
+    @Test
+    public void testGet()
+    {
+        assertEquals(1, LongValue.get(LongValue.valueOf(1), -1));
+        assertEquals(-1, LongValue.get(DoubleValue.valueOf(1), -1));
+        assertEquals(-1, LongValue.get(TextValue.valueOf("1"), -1));
+        assertEquals(-1, LongValue.get(null, -1));
+    }
 }

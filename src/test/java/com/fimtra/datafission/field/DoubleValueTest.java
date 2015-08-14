@@ -17,6 +17,7 @@ package com.fimtra.datafission.field;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -50,4 +51,12 @@ public class DoubleValueTest
         assertEquals(Double.NaN, new DoubleValue().doubleValue(), 0.0001);
     }
 
+    @Test
+    public void testGet()
+    {
+        assertEquals(1.0, DoubleValue.get(DoubleValue.valueOf(1), -1), 0.01);
+        assertTrue(Double.isNaN(DoubleValue.get(null, Double.NaN)));
+        assertTrue(Double.isNaN(DoubleValue.get(LongValue.valueOf(1), Double.NaN)));
+        assertTrue(Double.isNaN(DoubleValue.get(TextValue.valueOf("1"), Double.NaN)));
+    }
 }
