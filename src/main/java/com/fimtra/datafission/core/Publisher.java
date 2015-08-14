@@ -43,7 +43,6 @@ import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordChange;
 import com.fimtra.datafission.IRecordListener;
 import com.fimtra.datafission.IValue;
-import com.fimtra.datafission.field.DoubleValue;
 import com.fimtra.datafission.field.LongValue;
 import com.fimtra.datafission.field.TextValue;
 import com.fimtra.thimble.ISequentialRunnable;
@@ -360,12 +359,10 @@ public class Publisher
                     final double perMin = 60000d / (Publisher.this.contextConnectionsRecordPublishPeriodMillis / 2);
                     submapConnections.put(
                         IContextConnectionsRecordFields.MSGS_PER_MIN,
-                        DoubleValue.valueOf((ProxyContextPublisher.this.messagesPublished - this.lastMessagesPublished)
-                            * perMin));
+                        LongValue.valueOf((long) ((ProxyContextPublisher.this.messagesPublished - this.lastMessagesPublished) * perMin)));
                     submapConnections.put(
                         IContextConnectionsRecordFields.KB_PER_MIN,
-                        DoubleValue.valueOf(((ProxyContextPublisher.this.bytesPublished - this.lastBytesPublished) / 1024)
-                            * perMin));
+                        LongValue.valueOf((long) (((ProxyContextPublisher.this.bytesPublished - this.lastBytesPublished) / 1024) * perMin)));
 
                     submapConnections.put(IContextConnectionsRecordFields.MESSAGE_COUNT,
                         LongValue.valueOf(ProxyContextPublisher.this.messagesPublished));
