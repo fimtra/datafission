@@ -142,7 +142,9 @@ public class ProxyContextTest
 
     int getNextFreePort()
     {
-        return TcpChannelUtils.getNextFreeTcpServerPort(null, START_PORT++, END_PORT++);
+        return START_PORT++;
+        // port scanning disabled to speed up tests
+        // return TcpChannelUtils.getNextFreeTcpServerPort(null, START_PORT++, END_PORT++);
     }
 
     private void doSetup()
