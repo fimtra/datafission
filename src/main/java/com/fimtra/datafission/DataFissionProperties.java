@@ -114,6 +114,13 @@ public abstract class DataFissionProperties
          * E.g. <code>-DdataFission.ignoreLoggingRxCommandsWithPrefix=rpc|xyz,</code>
          */
         String IGNORE_LOGGING_RX_COMMANDS_WITH_PREFIX = BASE + "ignoreLoggingRxCommandsWithPrefix";
+
+        /**
+         * The system property name to define the number of threads assigned to the runtime-wide
+         * reconnect task scheduler used by all {@link ProxyContext} instances.<br>
+         * E.g. <code>-DdataFission.reconnectThreadCount=2</code>
+         */
+        String RECONNECT_THREAD_COUNT = BASE + "reconnectThreadCount";
     }
 
     /**
@@ -221,6 +228,15 @@ public abstract class DataFissionProperties
         Set<String> IGNORE_LOGGING_RX_COMMANDS_WITH_PREFIX = CollectionUtils.newSetFromString(
             System.getProperty(Names.IGNORE_LOGGING_RX_COMMANDS_WITH_PREFIX), ",");
 
+        /**
+         * The number of threads used in the shared reconnect task scheduler used by all DataFission
+         * {@link ProxyContext} instances in the runtime.
+         * <p>
+         * Default is 2.
+         * 
+         * @see Names#RECONNECT_THREAD_COUNT
+         */
+        int RECONNECT_THREAD_COUNT = Integer.parseInt(System.getProperty(Names.RECONNECT_THREAD_COUNT, "2"));
     }
 
     private DataFissionProperties()

@@ -64,7 +64,6 @@ import com.fimtra.util.Log;
 import com.fimtra.util.ObjectUtils;
 import com.fimtra.util.StringUtils;
 import com.fimtra.util.SubscriptionManager;
-import com.fimtra.util.ThreadUtils;
 
 /**
  * A proxy context allows a local runtime to observe records from a single {@link Context} in a
@@ -1181,19 +1180,12 @@ public final class ProxyContext implements IObserverContext
             Log.log(this, "Resubscribing in ", Long.toString(this.reconnectPeriodMillis), "ms ",
                 ObjectUtils.safeToString(this));
 
-            this.reconnectTask = getUtilityExecutor().schedule(new Runnable()
+            this.reconnectTask = ContextUtils.RECONNECT_TASKS.schedule(new Runnable()
             {
                 @Override
                 public void run()
                 {
-                    ThreadUtils.newDaemonThread(new Runnable()
-                    {
-                        @Override
-                        public void run()
-                        {
-                            reconnect();
-                        }
-                    }, "reconnect-proxy[" + ProxyContext.this.getName() + "]").start();
+                    reconnect();
                 }
             }, this.reconnectPeriodMillis, TimeUnit.MILLISECONDS);
         }
@@ -1202,7 +1194,7 @@ public final class ProxyContext implements IObserverContext
             this.lock.unlock();
         }
     }
-
+    
     /**
      * Updates the connection status of all subscribed records and the ContextStatus record.
      */
