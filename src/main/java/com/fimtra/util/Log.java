@@ -48,6 +48,7 @@ public abstract class Log
     static final Queue<String> LOG_MESSAGE_QUEUE = new ConcurrentLinkedQueue<String>();
     static final CharSequence LINE_SEPARATOR = SystemUtils.lineSeparator();
     static final RollingFileAppender FILE_APPENDER;
+    private static boolean exceptionEncountered;
 
     static
     {
@@ -313,25 +314,52 @@ public abstract class Log
         final int size = LOG_MESSAGE_QUEUE.size();
         if (size > 0)
         {
-            for (int i = 0; i < size; i++)
+            int i = 0;
+            if (exceptionEncountered)
             {
+                for (; i < size; i++)
+                {
+                    System.err.append(LOG_MESSAGE_QUEUE.poll());
+                }
+            }
+            else
+            {
+                for (; i < size; i++)
+                {
+                    try
+                    {
+                        FILE_APPENDER.append(LOG_MESSAGE_QUEUE.poll());
+                    }
+                    catch (IOException e)
+                    {
+                        panic(e);
+                        // print the remainder
+                        for (i++; i < size; i++)
+                        {
+                            System.err.append(LOG_MESSAGE_QUEUE.poll());
+                        }
+                        return;
+                    }
+                }
                 try
                 {
-                    FILE_APPENDER.append(LOG_MESSAGE_QUEUE.poll());
+                    FILE_APPENDER.flush();
                 }
                 catch (IOException e)
                 {
-                    e.printStackTrace();
+                    panic(e);
                 }
             }
-            try
-            {
-                FILE_APPENDER.flush();
-            }
-            catch (IOException e)
-            {
-                e.printStackTrace();
-            }
+        }
+    }
+
+    private static void panic(IOException e)
+    {
+        if (!exceptionEncountered)
+        {
+            System.err.println("ALERT! LOG MESSAGE(S) LOST! Log messages will now be written directly to stderr. See exception below.");
+            e.printStackTrace();
+            exceptionEncountered = true;
         }
     }
 }
