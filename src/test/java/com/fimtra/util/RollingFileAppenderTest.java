@@ -19,14 +19,10 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.fimtra.util.FileUtils;
-import com.fimtra.util.RollingFileAppender;
 
 /**
  * Tests the {@link RollingFileAppender}
@@ -43,7 +39,7 @@ public class RollingFileAppenderTest
     public void setUp() throws Exception
     {
         deleteLogged();
-        this.candidate = new RollingFileAppender(file, 10, TimeUnit.HOURS, 1, "RollingFileAppenderTest");
+        this.candidate = new RollingFileAppender(file, 10);
     }
 
     @After

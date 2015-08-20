@@ -18,13 +18,10 @@ package com.fimtra.util;
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileWriter;
 import java.io.Flushable;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * An {@link Appendable} implementation that writes to a {@link File} and will roll the file when
@@ -38,17 +35,12 @@ import java.util.concurrent.TimeUnit;
  * and then create a new file called {filename}. This all occurs in the same directory as the
  * original file.
  * <p>
- * Each time a file is rolled, any files older than the specified number of time units and that
- * start with the specified prefix are deleted.
- * <p>
  * <b>This is not thread safe</b>
  * 
  * @author Ramon Servadei
  */
 public final class RollingFileAppender implements Appendable, Closeable, Flushable
 {
-    final static Executor DELETE_EXECUTOR = ThreadUtils.newSingleThreadExecutorService("RollingFileAppender-delete");
-
     /**
      * Create a standard {@link RollingFileAppender} allowing 1M per file, deleting older than 1
      * day.
@@ -60,7 +52,7 @@ public final class RollingFileAppender implements Appendable, Closeable, Flushab
         RollingFileAppender temp = null;
         try
         {
-            temp = new RollingFileAppender(file, 1024 * 1024, TimeUnit.DAYS, 1, filePrefix);
+            temp = new RollingFileAppender(file, 1024 * 1024);
         }
         catch (IOException e)
         {
@@ -83,48 +75,6 @@ public final class RollingFileAppender implements Appendable, Closeable, Flushab
         }
     }
 
-    private static void deleteOldLogFiles(final File logFile, final TimeUnit olderThanTimeUnit,
-        final int olderThanTimeUnitNumber, final String prefixToMatchWhenDeleting)
-    {
-        DELETE_EXECUTOR.execute(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                File[] toDelete = FileUtils.readFiles(logFile.getAbsoluteFile().getParentFile(), new FileFilter()
-                {
-                    @Override
-                    public boolean accept(File file)
-                    {
-                        final long oneDayAgo =
-                            System.currentTimeMillis() - olderThanTimeUnit.toMillis(olderThanTimeUnitNumber);
-                        if (file.isFile() && file.lastModified() < oneDayAgo
-                            && file.getName().startsWith(prefixToMatchWhenDeleting))
-                        {
-                            return true;
-                        }
-                        return false;
-                    }
-                });
-                for (File file : toDelete)
-                {
-                    Log.log(RollingFileAppender.class, "DELETING ", ObjectUtils.safeToString(file));
-                    try
-                    {
-                        file.delete();
-                    }
-                    catch (Exception e)
-                    {
-                        Log.log(RollingFileAppender.class, "ERROR DELETING " + file, e);
-                    }
-                }
-            }
-        });
-    }
-
-    private final String prefixToMatchWhenDeleting;
-    private final int olderThanTimeUnitNumber;
-    private final TimeUnit olderThanTimeUnit;
     private int currentCharCount;
     private final int maxChars;
     private File currentFile;
@@ -138,29 +88,16 @@ public final class RollingFileAppender implements Appendable, Closeable, Flushab
      *            the file to write to
      * @param maximumCharacters
      *            the maximum number of characters to write to the file before rolling to a new file
-     * @param olderThanTimeUnit
-     *            the time unit for identifying files to delete
-     * @param olderThanTimeUnitNumber
-     *            the number of time units the last-modified time of a file must exceed to be
-     *            deleted
-     * @param prefixToMatchWhenDeleting
-     *            the prefix to match files in the same directory as the log file when deleting
      * @throws IOException
      */
-    public RollingFileAppender(File file, int maximumCharacters, final TimeUnit olderThanTimeUnit,
-        final int olderThanTimeUnitNumber, String prefixToMatchWhenDeleting) throws IOException
+    public RollingFileAppender(File file, int maximumCharacters) throws IOException
     {
         if (maximumCharacters <= 0)
         {
             throw new IOException("Cannot have negative or 0 maximum characters");
         }
         this.currentFile = file;
-        this.prefixToMatchWhenDeleting = prefixToMatchWhenDeleting;
-        this.olderThanTimeUnit = olderThanTimeUnit;
-        this.olderThanTimeUnitNumber = olderThanTimeUnitNumber;
         checkFileWriteable(this.currentFile);
-        deleteOldLogFiles(this.currentFile, this.olderThanTimeUnit, this.olderThanTimeUnitNumber,
-            this.prefixToMatchWhenDeleting);
         this.maxChars = maximumCharacters;
         this.writer = new BufferedWriter(new FileWriter(file));
     }
@@ -232,8 +169,6 @@ public final class RollingFileAppender implements Appendable, Closeable, Flushab
             this.currentCharCount = charCount;
             this.currentFile = new File(this.currentFile.getParent(), name);
             checkFileWriteable(this.currentFile);
-            deleteOldLogFiles(this.currentFile, this.olderThanTimeUnit, this.olderThanTimeUnitNumber,
-                this.prefixToMatchWhenDeleting);
             this.writer = new BufferedWriter(new FileWriter(this.currentFile));
         }
     }
