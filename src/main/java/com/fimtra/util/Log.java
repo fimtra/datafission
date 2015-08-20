@@ -21,11 +21,10 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import com.fimtra.thimble.ThimbleExecutor;
 
 /**
  * A simple logger that writes to a file and to <code>System.err</code>. Uses a
@@ -42,8 +41,7 @@ public abstract class Log
     private static final boolean LOG_TO_STDERR = UtilProperties.Values.LOG_TO_STDERR;
     private static final String TAB = "|";
     private static final FastDateFormat fastDateFormat = new FastDateFormat();
-    private static final ExecutorService FILE_APPENDER_EXECUTOR =
-        ThreadUtils.newSingleThreadExecutorService("LogAsyncFileAppender");
+    private static final ThimbleExecutor FILE_APPENDER_EXECUTOR = new ThimbleExecutor("LogAsyncFileAppender", 1);
     private static final Lock lock = new ReentrantLock();
     private static PrintStream consoleStream = System.err;
 
@@ -60,15 +58,7 @@ public abstract class Log
             public void run()
             {
                 System.err.println("Shutting down logging...");
-                FILE_APPENDER_EXECUTOR.shutdown();
-                try
-                {
-                    FILE_APPENDER_EXECUTOR.awaitTermination(5, TimeUnit.SECONDS);
-                }
-                catch (InterruptedException e)
-                {
-                    e.printStackTrace();
-                }
+                FILE_APPENDER_EXECUTOR.destroy();
                 flushMessages();
                 try
                 {
@@ -278,21 +268,14 @@ public abstract class Log
     private static void print(final String logMessageWithLineSeparator)
     {
         LOG_MESSAGE_QUEUE.add(logMessageWithLineSeparator);
-        try
+        FILE_APPENDER_EXECUTOR.execute(new Runnable()
         {
-            FILE_APPENDER_EXECUTOR.execute(new Runnable()
+            @Override
+            public void run()
             {
-                @Override
-                public void run()
-                {
-                    flushMessages();
-                }
-            });
-        }
-        catch (RejectedExecutionException e)
-        {
-            // REALLY don't care about these!
-        }
+                flushMessages();
+            }
+        });
         if (LOG_TO_STDERR)
         {
             consoleStream.print(logMessageWithLineSeparator);
@@ -308,9 +291,9 @@ public abstract class Log
         final String[] elements = message.split("\n");
         int len = elements[0].length();
         int i = 0;
-        for(i = 0; i < elements.length; i++)
+        for (i = 0; i < elements.length; i++)
         {
-            if(len < elements[i].length())
+            if (len < elements[i].length())
             {
                 len = elements[i].length();
             }
