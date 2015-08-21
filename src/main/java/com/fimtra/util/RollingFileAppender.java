@@ -18,7 +18,6 @@ package com.fimtra.util;
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileWriter;
 import java.io.Flushable;
 import java.io.IOException;
@@ -308,33 +307,8 @@ public final class RollingFileAppender implements Appendable, Closeable, Flushab
             @Override
             public void run()
             {
-                File[] toDelete = FileUtils.readFiles(file.getAbsoluteFile().getParentFile(), new FileFilter()
-                {
-                    @Override
-                    public boolean accept(File file)
-                    {
-                        final long oneTimeUnitEarlier =
-                            System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(olderThanMinutes);
-                        if (file.isFile() && file.lastModified() < oneTimeUnitEarlier
-                            && file.getName().startsWith(prefixToMatchWhenDeleting))
-                        {
-                            return true;
-                        }
-                        return false;
-                    }
-                });
-                for (File file : toDelete)
-                {
-                    Log.log(RollingFileAppender.class, "DELETING ", ObjectUtils.safeToString(file));
-                    try
-                    {
-                        file.delete();
-                    }
-                    catch (Exception e)
-                    {
-                        Log.log(RollingFileAppender.class, "ERROR DELETING " + file, e);
-                    }
-                }
+                FileUtils.deleteFiles(file.getAbsoluteFile().getParentFile(), olderThanMinutes,
+                    prefixToMatchWhenDeleting);
             }
         }, 0, olderThanMinutes, TimeUnit.MINUTES);
 
