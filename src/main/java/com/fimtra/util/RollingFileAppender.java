@@ -18,11 +18,15 @@ package com.fimtra.util;
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileWriter;
 import java.io.Flushable;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * An {@link Appendable} implementation that writes to a {@link File} and will roll the file when
@@ -36,6 +40,9 @@ import java.io.Writer;
  * and then create a new file called {filename}. This all occurs in the same directory as the
  * original file.
  * <p>
+ * Periodically, any files older than the specified number of time units and that start with the
+ * specified prefix are deleted.
+ * <p>
  * <b>This is not thread safe</b>
  * 
  * @author Ramon Servadei
@@ -43,7 +50,8 @@ import java.io.Writer;
 public final class RollingFileAppender implements Appendable, Closeable, Flushable
 {
     /**
-     * Create a standard {@link RollingFileAppender} allowing 1M per file.
+     * Create a standard {@link RollingFileAppender} allowing 1M per file, deleting older than 1
+     * day.
      */
     public static final RollingFileAppender createStandardRollingFileAppender(String fileIdentity, String directory)
     {
@@ -52,7 +60,7 @@ public final class RollingFileAppender implements Appendable, Closeable, Flushab
         RollingFileAppender temp = null;
         try
         {
-            temp = new RollingFileAppender(file, 1024 * 1024);
+            temp = new RollingFileAppender(file, 1024 * 1024, TimeUnit.MINUTES.convert(1, TimeUnit.DAYS), filePrefix);
         }
         catch (IOException e)
         {
@@ -74,6 +82,9 @@ public final class RollingFileAppender implements Appendable, Closeable, Flushab
             throw new IOException("Cannot write to file: " + file);
         }
     }
+
+    private final static ScheduledExecutorService DELETE_EXECUTOR = ThreadUtils.newScheduledExecutorService(
+        "RollingFileAppender-delete", 1);
 
     /**
      * Combines the interfaces {@link Appendable}, {@link Flushable} and {@link Closeable}
@@ -268,6 +279,7 @@ public final class RollingFileAppender implements Appendable, Closeable, Flushab
 
     private static final StdErrAppendableFlushableCloseable STD_ERR_APPENDER = new StdErrAppendableFlushableCloseable();
 
+    final ScheduledFuture<?> logDeleteTask;
     AppendableFlushableCloseable delegate;
 
     /**
@@ -277,14 +289,55 @@ public final class RollingFileAppender implements Appendable, Closeable, Flushab
      *            the file to write to
      * @param maximumCharacters
      *            the maximum number of characters to write to the file before rolling to a new file
+     * @param olderThanMinutes
+     *            the number of minutes the last-modified time of a file must exceed to be deleted
+     * @param prefixToMatchWhenDeleting
+     *            the prefix to match files in the same directory as the log file when deleting
      * @throws IOException
      */
-    public RollingFileAppender(File file, int maximumCharacters) throws IOException
+    public RollingFileAppender(final File file, int maximumCharacters, final long olderThanMinutes,
+        final String prefixToMatchWhenDeleting) throws IOException
     {
         if (maximumCharacters <= 0)
         {
             throw new IOException("Cannot have negative or 0 maximum characters");
         }
+
+        this.logDeleteTask = DELETE_EXECUTOR.scheduleAtFixedRate(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                File[] toDelete = FileUtils.readFiles(file.getAbsoluteFile().getParentFile(), new FileFilter()
+                {
+                    @Override
+                    public boolean accept(File file)
+                    {
+                        final long oneTimeUnitEarlier =
+                            System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(olderThanMinutes);
+                        if (file.isFile() && file.lastModified() < oneTimeUnitEarlier
+                            && file.getName().startsWith(prefixToMatchWhenDeleting))
+                        {
+                            return true;
+                        }
+                        return false;
+                    }
+                });
+                for (File file : toDelete)
+                {
+                    Log.log(RollingFileAppender.class, "DELETING ", ObjectUtils.safeToString(file));
+                    try
+                    {
+                        file.delete();
+                    }
+                    catch (Exception e)
+                    {
+                        Log.log(RollingFileAppender.class, "ERROR DELETING " + file, e);
+                    }
+                }
+            }
+        }, 0, olderThanMinutes, TimeUnit.MINUTES);
+
         this.delegate = new FileWriterAppendableFlushableCloseableImplementation(file, maximumCharacters);
     }
 
@@ -324,7 +377,14 @@ public final class RollingFileAppender implements Appendable, Closeable, Flushab
     @Override
     public void close() throws IOException
     {
-        this.delegate.close();
+        try
+        {
+            this.logDeleteTask.cancel(false);
+        }
+        finally
+        {
+            this.delegate.close();
+        }
     }
 
     void emergencyAction(IOException e, char c) throws IOException
