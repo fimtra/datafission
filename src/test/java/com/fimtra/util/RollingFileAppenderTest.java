@@ -16,13 +16,23 @@
 package com.fimtra.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+
+import com.fimtra.util.RollingFileAppender.AppendableFlushableCloseable;
 
 /**
  * Tests the {@link RollingFileAppender}
@@ -31,15 +41,18 @@ import org.junit.Test;
  */
 public class RollingFileAppenderTest
 {
-    private static final String FILENAME = "RollingFileAppenderTest.log";
-    final static File file = new File(FILENAME);
+    @Rule
+    public TestName name = new TestName();
+
+    File file;
     RollingFileAppender candidate;
 
     @Before
     public void setUp() throws Exception
     {
+        this.file = new File(this.name.getMethodName() + ".log");
         deleteLogged();
-        this.candidate = new RollingFileAppender(file, 10);
+        this.candidate = new RollingFileAppender(this.file, 10);
     }
 
     @After
@@ -48,9 +61,9 @@ public class RollingFileAppenderTest
         deleteLogged();
     }
 
-    static void deleteLogged()
+    void deleteLogged()
     {
-        new File(FILENAME).delete();
+        new File(this.name.getMethodName()).delete();
         final File[] files = FileUtils.readFiles(new File("."), new FileUtils.ExtensionFileFilter("logged"));
         for (File file : files)
         {
@@ -67,5 +80,36 @@ public class RollingFileAppenderTest
 
         final File[] files = FileUtils.readFiles(new File("."), new FileUtils.ExtensionFileFilter("logged"));
         assertEquals(4, files.length);
+    }
+
+    @Test
+    public void testEmergency() throws IOException
+    {
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        PrintStream current = System.err;
+        try
+        {
+            System.setErr(new PrintStream(out));
+            final AppendableFlushableCloseable mock = mock(AppendableFlushableCloseable.class);
+            this.candidate.delegate = mock;
+            try
+            {
+                // simulate some emergency situation
+                this.candidate.switchToStdErr(new IOException("some error"));
+                fail("Should throw IOException");
+            }
+            catch (IOException e)
+            {
+            }
+            this.candidate.append("writing after emergency");
+            final String result = new String(out.toByteArray());
+            verify(mock).close();
+            assertTrue(result.contains("ALERT!"));
+            assertTrue(result.contains("some error"));
+        }
+        finally
+        {
+            System.setErr(current);
+        }
     }
 }
