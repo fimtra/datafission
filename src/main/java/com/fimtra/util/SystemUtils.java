@@ -26,7 +26,7 @@ public abstract class SystemUtils
     {
     }
 
-    public static String lineSeparator()
+    public static final String lineSeparator()
     {
         return LINE_SEPARATOR;
     }

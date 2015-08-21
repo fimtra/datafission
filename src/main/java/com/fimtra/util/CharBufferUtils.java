@@ -35,7 +35,7 @@ public abstract class CharBufferUtils
      * 
      * @see #copyCharsIntoBuffer(char[], CharBuffer)
      */
-    public static CharBuffer copyBufferIntoBuffer(CharBuffer source, CharBuffer target)
+    public static final CharBuffer copyBufferIntoBuffer(CharBuffer source, CharBuffer target)
     {
         return copyCharsIntoBuffer(CharBufferUtils.asChars(source), target);
     }
@@ -43,7 +43,7 @@ public abstract class CharBufferUtils
     /**
      * @return a new char[] that holds the data in the buffer from 0-limit in the buffer
      */
-    public static char[] asChars(CharBuffer buffer)
+    public static final char[] asChars(CharBuffer buffer)
     {
         final char[] data = new char[buffer.limit()];
         System.arraycopy(buffer.array(), 0, data, 0, buffer.limit());
@@ -55,7 +55,7 @@ public abstract class CharBufferUtils
      * 
      * @return the {@link CharBuffer} with the data added to it (resized if needed)
      */
-    public static CharBuffer copyCharsIntoBuffer(char[] data, CharBuffer buffer)
+    public static final CharBuffer copyCharsIntoBuffer(char[] data, CharBuffer buffer)
     {
         CharBuffer localBuf = buffer;
         try
@@ -91,7 +91,7 @@ public abstract class CharBufferUtils
      * @param len
      *            the number of chars to retrieve
      */
-    public static char[] getCharsFromBuffer(CharBuffer buffer, int len)
+    public static final char[] getCharsFromBuffer(CharBuffer buffer, int len)
     {
         final int start = buffer.position();
         final char[] chars = new char[len];
@@ -103,7 +103,7 @@ public abstract class CharBufferUtils
     /**
      * Copy the chars out of a buffer from 0 to the current position, resets the position to 0
      */
-    public static char[] getCharsFromBufferAndReset(CharBuffer buffer)
+    public static final char[] getCharsFromBufferAndReset(CharBuffer buffer)
     {
         final int len = buffer.position();
         final char[] chars = new char[len];
@@ -117,7 +117,7 @@ public abstract class CharBufferUtils
      * 
      * @return the same buffer if not extended, <b>a new buffer if extended</b>
      */
-    public static CharBuffer put(char c, CharBuffer buffer)
+    public static final CharBuffer put(char c, CharBuffer buffer)
     {
         CharBuffer localBuf = buffer;
         if (capacityRemaining(buffer) < 1)
@@ -131,7 +131,7 @@ public abstract class CharBufferUtils
     /**
      * @see #putChar(char, CharBuffer)
      */
-    public static CharBuffer put(char[] chars, CharBuffer buffer)
+    public static final CharBuffer put(char[] chars, CharBuffer buffer)
     {
         CharBuffer localBuf = buffer;
         if (capacityRemaining(buffer) < chars.length)

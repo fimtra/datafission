@@ -39,7 +39,7 @@ public abstract class FileUtils {
         // Not for instantiation
     }
 
-    public static String getRecordNameFromFile(File recordFile) {
+    public static final String getRecordNameFromFile(File recordFile) {
         StringBuilder extBuilder = (new StringBuilder()).append(".").append(recordFileExtension);
         String fileName = recordFile.getName();
         if (fileName.endsWith(extBuilder.toString())) {
@@ -55,14 +55,14 @@ public abstract class FileUtils {
      * @throws IllegalArgumentException
      *             if the directory parameter is not a filesystem directory.
      */
-    public static File[] readFiles(File directory, FileFilter fileFilter) {
+    public static final File[] readFiles(File directory, FileFilter fileFilter) {
         if (!directory.isDirectory()) {
             throw new IllegalArgumentException(directory.getName() + " is not a directory");
         }
         return directory.listFiles(fileFilter);
     }
 
-    public static class ExtensionFileFilter implements FileFilter {
+    public static final class ExtensionFileFilter implements FileFilter {
 
         private final String[] allowedFileExtensions;
 
@@ -92,7 +92,7 @@ public abstract class FileUtils {
      * <p>
      * This is non-atomic.
      */
-    public static void copyRecursive(File srcDir, File targetDir) throws IOException {
+    public static final void copyRecursive(File srcDir, File targetDir) throws IOException {
         if (!targetDir.exists() && !targetDir.mkdir()) {
             throw new IOException("Could not create target dir: " + targetDir);
         }
@@ -117,7 +117,7 @@ public abstract class FileUtils {
      *
      * @throws IOException
      */
-    public static void clearDirectory(File src) throws IOException {
+    public static final void clearDirectory(File src) throws IOException {
         if (src.exists() && src.isDirectory()) {
             for (File file : src.listFiles()) {
                 if (file.isDirectory()) {
@@ -139,7 +139,7 @@ public abstract class FileUtils {
      *
      * @throws IOException
      */
-    public static void deleteRecursive(File src) throws IOException {
+    public static final void deleteRecursive(File src) throws IOException {
         clearDirectory(src);
         if (src.exists() && !src.delete()) {
             throw new IOException("Could not delete: " + src);
@@ -157,7 +157,7 @@ public abstract class FileUtils {
      *
      * @throws IOException
      */
-    public static void move(File src, File dest) throws IOException {
+    public static final void move(File src, File dest) throws IOException {
         if (src.isDirectory()) {
             deleteRecursive(dest);
             int i = 0;
@@ -182,7 +182,7 @@ public abstract class FileUtils {
      * @throws IOException
      *             if the directory could not be created
      */
-    public static File createDir(File dir) throws IOException {
+    public static final File createDir(File dir) throws IOException {
         if (!dir.exists() && !dir.mkdir()) {
             throw new IOException("Could not create directory " + dir);
         }
@@ -224,7 +224,7 @@ public abstract class FileUtils {
      * @param c
      *            the target to close
      */
-    public static void safeClose(Closeable c)
+    public static final void safeClose(Closeable c)
     {
         if (c != null)
         {
@@ -249,7 +249,7 @@ public abstract class FileUtils {
      *            the prefix for the file
      * @return the file
      */
-    public static File createLogFile_yyyyMMddHHmmss(String directory, final String filePrefix)
+    public static final File createLogFile_yyyyMMddHHmmss(String directory, final String filePrefix)
     {
         final File fileDirectory = new File(directory);
         fileDirectory.mkdir();

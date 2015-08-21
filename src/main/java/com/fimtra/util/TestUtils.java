@@ -31,7 +31,7 @@ public abstract class TestUtils
      * 
      * @author Ramon Servadei
      */
-    public static class EventFailedException extends AssertionError
+    public static final class EventFailedException extends AssertionError
     {
         private static final long serialVersionUID = 1L;
 
@@ -65,7 +65,7 @@ public abstract class TestUtils
      * @throws EventFailedException
      *             if the event fails to occur
      */
-    public static void waitForEvent(EventChecker check) throws InterruptedException, EventFailedException
+    public static final void waitForEvent(EventChecker check) throws InterruptedException, EventFailedException
     {
         waitForEvent(check, 30000);
     }
@@ -77,7 +77,7 @@ public abstract class TestUtils
      * @throws EventFailedException
      *             if the event fails to occur
      */
-    public static void waitForEvent(EventChecker check, int maxLoops) throws InterruptedException, EventFailedException
+    public static final void waitForEvent(EventChecker check, int maxLoops) throws InterruptedException, EventFailedException
     {
         int loops = 0;
         while (check(check) && loops++ < maxLoops)

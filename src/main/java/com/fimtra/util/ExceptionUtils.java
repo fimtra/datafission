@@ -30,7 +30,7 @@ public abstract class ExceptionUtils {
 	/**
 	 *Gets the stack of the {@link Throwable}, cascading through all causes.
 	 */
-	public static String getFullStackTrace(Throwable throwable) {
+	public static final String getFullStackTrace(Throwable throwable) {
 		StringBuilder stackBuilder = getStackBuilder(throwable);
 		return stackBuilder.toString();
 	}

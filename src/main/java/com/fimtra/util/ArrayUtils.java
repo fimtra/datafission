@@ -32,7 +32,7 @@ public abstract class ArrayUtils
      * 
      * @return <code>true</code> if the array contains the instance
      */
-    public static <T> boolean containsInstance(T[] arr, T instance)
+    public static final <T> boolean containsInstance(T[] arr, T instance)
     {
         for (int i = 0; i < arr.length; i++)
         {

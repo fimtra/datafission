@@ -64,7 +64,7 @@ public final class DeadlockDetector
      * @return an AtomicBoolean that can be set to false to stop the detection and terminate the
      *         thread
      */
-    public static AtomicBoolean newDeadlockDetectorThread(String threadName, final long checkPeriodMillis,
+    public static final AtomicBoolean newDeadlockDetectorThread(String threadName, final long checkPeriodMillis,
         final DeadlockObserver deadlockObserver, final boolean rollingThreaddumpFile)
     {
         final AtomicBoolean active = new AtomicBoolean(true);
@@ -194,7 +194,7 @@ public final class DeadlockDetector
      * 
      * @author Ramon Servadei
      */
-    public static class ThreadInfoWrapper
+    public static final class ThreadInfoWrapper
     {
         private final ThreadInfo delegate;
 

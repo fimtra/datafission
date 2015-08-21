@@ -43,7 +43,7 @@ public abstract class StringUtils
      *            the char[] to find the prefix in
      * @return <code>true</code> if the char[] starts with prefix
      */
-    public static boolean startsWith(char[] prefix, char[] other)
+    public final static boolean startsWith(char[] prefix, char[] other)
     {
         if (prefix.length != 0 && prefix.length <= other.length)
         {
@@ -63,7 +63,7 @@ public abstract class StringUtils
      * Will return an empty string if str is null, otherwise it will return str with trailing and
      * leading whitespace removed.
      */
-    public static String stripToEmpty(String str)
+    public final static String stripToEmpty(String str)
     {
         if (str == null)
         {
@@ -75,7 +75,7 @@ public abstract class StringUtils
     /**
      * Returns true if the str is null, empty or contains only whitespace.
      */
-    public static boolean isEmpty(String str)
+    public final static boolean isEmpty(String str)
     {
         String stripped = stripToEmpty(str);
         return stripped.isEmpty();
@@ -98,7 +98,7 @@ public abstract class StringUtils
      * @return the string separated into tokens identified by the delimiter, <code>null</code> if
      *         stringToSplit is <code>null</code>
      */
-    public static List<String> split(String stringToSplit, char delimiter)
+    public final static List<String> split(String stringToSplit, char delimiter)
     {
         if (stringToSplit == null)
         {
@@ -158,7 +158,7 @@ public abstract class StringUtils
      * @return a string that represents the list of strings to join each separated by the delimiter
      *         character, <code>null</code> if stringsToJoin is <code>null</code>
      */
-    public static String join(List<String> stringsToJoin, char delimiter)
+    public final static String join(List<String> stringsToJoin, char delimiter)
     {
         if (stringsToJoin == null)
         {

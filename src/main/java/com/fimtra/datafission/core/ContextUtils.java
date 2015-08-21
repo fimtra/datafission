@@ -137,6 +137,7 @@ public class ContextUtils
             @Override
             public void run()
             {
+                // todo log ALL ThimbleExecutors?
                 coreSequentialStats = CORE_EXECUTOR.getSequentialTaskStatistics();
                 StringBuilder sb = new StringBuilder(1024);
                 sb.append(this.fdf.yyyyMMddHHmmssSSS(System.currentTimeMillis())).append(

@@ -64,7 +64,7 @@ public abstract class is
      *         <code>null</code> (in which case the classes are not equal
      *         anyway).
      */
-    public static boolean differentClass(Object candidate, Object other)
+    public static final boolean differentClass(Object candidate, Object other)
     {
         return other == null || candidate.getClass() != other.getClass();
     }
@@ -79,7 +79,7 @@ public abstract class is
      * @return <code>true</code> if the objects references are for the same
      *         object
      */
-    public static boolean same(Object o1, Object o2)
+    public static final boolean same(Object o1, Object o2)
     {
         return o1 == o2;
     }
@@ -95,7 +95,7 @@ public abstract class is
      * @return <code>true</code> if the objects are equal OR both are
      *         <code>null</code>
      */
-    public static boolean eq(Object o1, Object o2)
+    public static final boolean eq(Object o1, Object o2)
     {
         return (o1 == null && o2 == null) || (o1 != null && o1.equals(o2));
     }
@@ -109,7 +109,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(boolean b1, boolean b2)
+    public static final boolean eq(boolean b1, boolean b2)
     {
         return b1 == b2;
     }
@@ -123,7 +123,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(byte b1, byte b2)
+    public static final boolean eq(byte b1, byte b2)
     {
         return b1 == b2;
     }
@@ -137,7 +137,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(char c1, char c2)
+    public static final boolean eq(char c1, char c2)
     {
         return c1 == c2;
     }
@@ -151,7 +151,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(short s1, short s2)
+    public static final boolean eq(short s1, short s2)
     {
         return s1 == s2;
     }
@@ -165,7 +165,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(int i1, int i2)
+    public static final boolean eq(int i1, int i2)
     {
         return i1 == i2;
     }
@@ -179,7 +179,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(long l1, long l2)
+    public static final boolean eq(long l1, long l2)
     {
         return l1 == l2;
     }
@@ -194,7 +194,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(float f1, float f2)
+    public static final boolean eq(float f1, float f2)
     {
         return Float.floatToIntBits(f1) == Float.floatToIntBits(f2);
     }
@@ -209,7 +209,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(double d1, double d2)
+    public static final boolean eq(double d1, double d2)
     {
         return Double.doubleToLongBits(d1) == Double.doubleToLongBits(d2);
     }
@@ -224,7 +224,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(boolean[] a1, boolean[] a2)
+    public static final boolean eq(boolean[] a1, boolean[] a2)
     {
         return Arrays.equals(a1, a2);
     }
@@ -239,7 +239,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(byte[] a1, byte[] a2)
+    public static final boolean eq(byte[] a1, byte[] a2)
     {
         return Arrays.equals(a1, a2);
     }
@@ -254,7 +254,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(char[] a1, char[] a2)
+    public static final boolean eq(char[] a1, char[] a2)
     {
         return Arrays.equals(a1, a2);
     }
@@ -269,7 +269,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(short[] a1, short[] a2)
+    public static final boolean eq(short[] a1, short[] a2)
     {
         return Arrays.equals(a1, a2);
     }
@@ -284,7 +284,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(int[] a1, int[] a2)
+    public static final boolean eq(int[] a1, int[] a2)
     {
         return Arrays.equals(a1, a2);
     }
@@ -299,7 +299,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(long[] a1, long[] a2)
+    public static final boolean eq(long[] a1, long[] a2)
     {
         return Arrays.equals(a1, a2);
     }
@@ -314,7 +314,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(float[] a1, float[] a2)
+    public static final boolean eq(float[] a1, float[] a2)
     {
         return Arrays.equals(a1, a2);
     }
@@ -329,7 +329,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(double[] a1, double[] a2)
+    public static final boolean eq(double[] a1, double[] a2)
     {
         return Arrays.equals(a1, a2);
     }
@@ -344,7 +344,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean eq(Object[] a1, Object[] a2)
+    public static final boolean eq(Object[] a1, Object[] a2)
     {
         return Arrays.equals(a1, a2);
     }
@@ -359,7 +359,7 @@ public abstract class is
      *            the other argument
      * @return <code>true</code> if the arguments are equal
      */
-    public static boolean deepEq(Object[] a1, Object[] a2)
+    public static final boolean deepEq(Object[] a1, Object[] a2)
     {
         return Arrays.deepEquals(a1, a2);
     }
@@ -371,7 +371,7 @@ public abstract class is
      *            the argument
      * @return <code>true</code> if the argument is not <code>null</code>
      */
-    public static boolean notNull(Object o)
+    public static final boolean notNull(Object o)
     {
         return o != null;
     }

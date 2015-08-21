@@ -46,7 +46,7 @@ public abstract class SerializationUtils
      *            the file to store the object bytestream
      * @throws IOException
      */
-    public static void serializeToFile(Serializable object, File file) throws IOException
+    public static final void serializeToFile(Serializable object, File file) throws IOException
     {
         final File tmp = new File(file.getParentFile(), file.getName() + ".tmp");
         if (tmp.exists() || tmp.createNewFile())
@@ -80,7 +80,7 @@ public abstract class SerializationUtils
      * @throws ClassNotFoundException
      */
     @SuppressWarnings("unchecked")
-    public static <T extends Serializable> T resolveFromFile(File file) throws FileNotFoundException, IOException,
+    public static final <T extends Serializable> T resolveFromFile(File file) throws FileNotFoundException, IOException,
         ClassNotFoundException
     {
         if (file.exists())
@@ -101,7 +101,7 @@ public abstract class SerializationUtils
     /**
      * Serialise the object to a byte[]
      */
-    public static byte[] toByteArray(Serializable object) throws IOException
+    public static final byte[] toByteArray(Serializable object) throws IOException
     {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final ObjectOutputStream oos = new ObjectOutputStream(baos);
@@ -121,7 +121,7 @@ public abstract class SerializationUtils
      * Resolve an object from a byte[]
      */
     @SuppressWarnings("unchecked")
-    public static <T extends Serializable> T fromByteArray(byte[] byteArr) throws IOException, ClassNotFoundException
+    public static final <T extends Serializable> T fromByteArray(byte[] byteArr) throws IOException, ClassNotFoundException
     {
         final ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(byteArr));
         try
