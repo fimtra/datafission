@@ -60,6 +60,49 @@ public class StringWithNumbersComparatorTest
         Collections.sort(strings, this.candidate);
         assertEquals("[XYZ_9, XYZ_10]", strings.toString());
     }
+    
+    @Test
+    public void testComparator3()
+    {
+        List<String> strings = new ArrayList<String>();
+        strings.add("XYZ");
+        strings.add("XYZ_10");
+        strings.add("");
+        Collections.sort(strings, this.candidate);
+        assertEquals("[, XYZ, XYZ_10]", strings.toString());
+    }
+    
+    @Test
+    public void testComparator4()
+    {
+        List<String> strings = new ArrayList<String>();
+        strings.add("XYZ");
+        strings.add("XYZ_15");
+        strings.add("XYZ_5");
+        strings.add("WXYZ");
+        strings.add("XYZ_1");
+        strings.add("XYZ_10");
+        strings.add(null);
+        Collections.sort(strings, this.candidate);
+        assertEquals("[null, WXYZ, XYZ, XYZ_1, XYZ_5, XYZ_10, XYZ_15]", strings.toString());
+    }
+    
+    @Test
+    public void testComparator5()
+    {
+        List<String> strings = new ArrayList<String>();
+        strings.add("");
+        strings.add("10XYZ");
+        strings.add(null);
+        strings.add("5XYZ");
+        strings.add("1XYZ");
+        strings.add("");
+        strings.add("8XYZ");
+        strings.add("9XYZ");
+        strings.add("");
+        Collections.sort(strings, this.candidate);
+        assertEquals("[null, , , , 1XYZ, 5XYZ, 8XYZ, 9XYZ, 10XYZ]", strings.toString());
+    }
 
     @Test
     public void testComparator()
