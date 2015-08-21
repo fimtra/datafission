@@ -260,4 +260,46 @@ public abstract class FileUtils {
         final File file = new File(fileDirectory, filePrefix + "_" + yyyyMMddHHmmssSSS + ".log");
         return file;
     }
+
+    /**
+     * Delete files in the directory that have the prefix and are older than the specified number of
+     * minutes.
+     * 
+     * @param directory
+     *            the directory to scan
+     * @param olderThanMinutes
+     *            the age in minutes for files to delete
+     * @param prefixToMatchWhenDeleting
+     *            the file prefix to match for eligible files
+     */
+    public static final void deleteFiles(File directory, final long olderThanMinutes,
+        final String prefixToMatchWhenDeleting)
+    {
+        File[] toDelete = readFiles(directory, new FileFilter()
+        {
+            @Override
+            public boolean accept(File file)
+            {
+                if (file.isFile()
+                    && file.lastModified() < System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(olderThanMinutes)
+                    && file.getName().startsWith(prefixToMatchWhenDeleting, 0))
+                {
+                    return true;
+                }
+                return false;
+            }
+        });
+        for (File file : toDelete)
+        {
+            Log.log(FileUtils.class, "DELETING ", ObjectUtils.safeToString(file));
+            try
+            {
+                file.delete();
+            }
+            catch (Exception e)
+            {
+                Log.log(FileUtils.class, "ERROR DELETING " + file, e);
+            }
+        }
+    }
 }
