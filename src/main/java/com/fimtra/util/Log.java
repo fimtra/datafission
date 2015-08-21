@@ -103,7 +103,7 @@ public abstract class Log
      * @param stream
      *            the console stream to use
      */
-    public static void setConsoleStream(PrintStream stream)
+    public static final void setConsoleStream(PrintStream stream)
     {
         lock.lock();
         try
@@ -116,7 +116,7 @@ public abstract class Log
         }
     }
 
-    public static void log(Object source, String... messages)
+    public static final void log(Object source, String... messages)
     {
         lock.lock();
         try
@@ -129,7 +129,7 @@ public abstract class Log
         }
     }
 
-    public static void log(Object source, String message1, String message2, String message3, String message4)
+    public static final void log(Object source, String message1, String message2, String message3, String message4)
     {
         lock.lock();
         try
@@ -142,7 +142,7 @@ public abstract class Log
         }
     }
 
-    public static void log(Object source, String message1, String message2, String message3)
+    public static final void log(Object source, String message1, String message2, String message3)
     {
         lock.lock();
         try
@@ -155,7 +155,7 @@ public abstract class Log
         }
     }
 
-    public static void log(Object source, String message1, String message2)
+    public static final void log(Object source, String message1, String message2)
     {
         lock.lock();
         try
@@ -168,7 +168,7 @@ public abstract class Log
         }
     }
 
-    public static void log(Object source, String message)
+    public static final void log(Object source, String message)
     {
         lock.lock();
         try
@@ -181,7 +181,7 @@ public abstract class Log
         }
     }
 
-    public static void log(Object source, String message, Throwable t)
+    public static final void log(Object source, String message, Throwable t)
     {
         lock.lock();
         try
@@ -286,7 +286,7 @@ public abstract class Log
     /**
      * Create a banner message
      */
-    public static void banner(Object source, String message)
+    public static final void banner(Object source, String message)
     {
         // note: use "\n" to cover unix "\n" and windows "\r\n"
         final String[] elements = message.split("\n");
