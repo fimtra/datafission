@@ -357,8 +357,11 @@ public abstract class Log
     {
         if (!exceptionEncountered)
         {
-            System.err.println("ALERT! LOG MESSAGE(S) LOST! Log messages will now be written directly to stderr. See exception below.");
-            e.printStackTrace();
+            synchronized (System.err)
+            {
+                System.err.println("ALERT! LOG MESSAGE(S) LOST! Log output switching to stderr. See exception below.");
+                e.printStackTrace();
+            }
             exceptionEncountered = true;
         }
     }
