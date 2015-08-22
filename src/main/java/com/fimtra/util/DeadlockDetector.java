@@ -25,6 +25,7 @@ import java.lang.management.MonitorInfo;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -93,9 +94,11 @@ public final class DeadlockDetector
                 final File staticFile;
                 if (this.appender == null)
                 {
-                    staticFile =
-                        FileUtils.createLogFile_yyyyMMddHHmmss(UtilProperties.Values.LOG_DIR,
-                            ThreadUtils.getMainMethodClassSimpleName() + "-threadDump");
+                    final String filePrefix = ThreadUtils.getMainMethodClassSimpleName() + "-threadDump";
+                    // delete old files
+                    FileUtils.deleteFiles(new File(UtilProperties.Values.LOG_DIR),
+                        TimeUnit.MINUTES.convert(1, TimeUnit.DAYS), filePrefix);
+                    staticFile = FileUtils.createLogFile_yyyyMMddHHmmss(UtilProperties.Values.LOG_DIR, filePrefix);
                     try
                     {
                         staticFile.createNewFile();
