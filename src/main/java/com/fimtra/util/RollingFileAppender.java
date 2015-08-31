@@ -51,23 +51,24 @@ public final class RollingFileAppender implements Appendable, Closeable, Flushab
     /**
      * Create a standard {@link RollingFileAppender} allowing 1M per file, deleting older than 1
      * day.
+     * 
+     * @throws RuntimeException
+     *             if the file cannot be created due to some {@link IOException}
      */
     public static final RollingFileAppender createStandardRollingFileAppender(String fileIdentity, String directory)
     {
         final String filePrefix = ThreadUtils.getMainMethodClassSimpleName() + "-" + fileIdentity;
         final File file = FileUtils.createLogFile_yyyyMMddHHmmss(directory, filePrefix);
-        RollingFileAppender temp = null;
         try
         {
-            temp = new RollingFileAppender(file, 1024 * 1024, TimeUnit.MINUTES.convert(1, TimeUnit.DAYS), filePrefix);
+            return new RollingFileAppender(file, 1024 * 1024, TimeUnit.MINUTES.convert(1, TimeUnit.DAYS), filePrefix);
         }
         catch (IOException e)
         {
-            System.err.println("Could not create file: " + file);
-            e.printStackTrace();
-            System.exit(101);
+            final RuntimeException runtimeException = new RuntimeException("Could not create file: " + file, e);
+            runtimeException.printStackTrace();
+            throw runtimeException;
         }
-        return temp;
     }
 
     static void checkFileWriteable(File file) throws IOException
