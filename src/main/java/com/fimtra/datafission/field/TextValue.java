@@ -1,12 +1,12 @@
 /*
- * Copyright (c) 2013 Ramon Servadei 
- *  
+ * Copyright (c) 2013 Ramon Servadei, Paul Mackinlay
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *    
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,12 +23,15 @@ import com.fimtra.util.is;
  * The {@link #textValue()} will <b>never</b> return <code>null</code>
  * 
  * @author Ramon Servadei
+ * @author Paul Mackinlay
  */
 public final class TextValue extends AbstractValue
 {
     static final String NULL = "null";
 
     final static TextValue BLANK = new TextValue("");
+
+	private final static String EMPTY_STRING = "";
 
     private String value;
 
@@ -37,7 +40,7 @@ public final class TextValue extends AbstractValue
      */
     public static TextValue valueOf(String value)
     {
-        if ("".equals(value))
+		if (EMPTY_STRING.equals(value))
         {
             return BLANK;
         }
@@ -77,7 +80,7 @@ public final class TextValue extends AbstractValue
     @Override
     public long longValue()
     {
-        return (this.value == NULL || this.value == "") ? 0 : Long.valueOf(this.value).longValue();
+		return (this.value == NULL || this.value == EMPTY_STRING) ? 0 : Long.valueOf(this.value).longValue();
     }
 
     @Override
@@ -85,7 +88,7 @@ public final class TextValue extends AbstractValue
     {
         try
         {
-            return (this.value == NULL || this.value == "") ? Double.NaN : Double.valueOf(this.value).doubleValue();
+			return (this.value == NULL || this.value == EMPTY_STRING) ? Double.NaN : Double.valueOf(this.value).doubleValue();
         }
         catch (NumberFormatException e)
         {
