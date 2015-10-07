@@ -38,7 +38,7 @@ public abstract class CollectionUtils
      * @return a Deque implementation
      * @see Values#USE_LOW_GC_LINKEDLIST
      */
-    public static <T> Deque<T> newDeque()
+    public static final <T> Deque<T> newDeque()
     {
         return UtilProperties.Values.USE_LOW_GC_LINKEDLIST ? new LowGcLinkedList<T>() : new LinkedList<T>();
     }
@@ -48,7 +48,7 @@ public abstract class CollectionUtils
      *         adding)
      * @deprecated Use {@link #newSetFromString(String,String)} instead
      */
-    public static Set<String> newSetFromString(String commaSeparatedList)
+    public static final Set<String> newSetFromString(String commaSeparatedList)
     {
         return newSetFromString(commaSeparatedList, ",");
     }
@@ -59,7 +59,7 @@ public abstract class CollectionUtils
      * @return an unmodifiable Set view of the token separated items (each item is trimmed before
      *         adding)
      */
-    public static Set<String> newSetFromString(String tokenSeparatedList, String tokenSeparator)
+    public static final Set<String> newSetFromString(String tokenSeparatedList, String tokenSeparator)
     {
         if (tokenSeparatedList == null)
         {

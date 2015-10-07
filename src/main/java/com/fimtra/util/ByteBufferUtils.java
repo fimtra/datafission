@@ -35,7 +35,7 @@ public abstract class ByteBufferUtils
      * 
      * @see #copyBytesIntoBuffer(byte[], ByteBuffer)
      */
-    public static ByteBuffer copyBufferIntoBuffer(ByteBuffer source, ByteBuffer target)
+    public static final ByteBuffer copyBufferIntoBuffer(ByteBuffer source, ByteBuffer target)
     {
         return copyBytesIntoBuffer(ByteBufferUtils.asBytes(source), target);
     }
@@ -43,7 +43,7 @@ public abstract class ByteBufferUtils
     /**
      * @return a new byte[] that holds the data in the buffer from 0-limit in the buffer
      */
-    public static byte[] asBytes(ByteBuffer buffer)
+    public static final byte[] asBytes(ByteBuffer buffer)
     {
         final byte[] data = new byte[buffer.limit()];
         System.arraycopy(buffer.array(), 0, data, 0, buffer.limit());
@@ -55,7 +55,7 @@ public abstract class ByteBufferUtils
      * 
      * @return the {@link ByteBuffer} with the data added to it (resized if needed)
      */
-    public static ByteBuffer copyBytesIntoBuffer(byte[] data, ByteBuffer buffer)
+    public static final ByteBuffer copyBytesIntoBuffer(byte[] data, ByteBuffer buffer)
     {
         ByteBuffer localBuf = buffer;
         try
@@ -91,7 +91,7 @@ public abstract class ByteBufferUtils
      * @param len
      *            the number of bytes to retrieve
      */
-    public static byte[] getBytesFromBuffer(ByteBuffer buffer, int len)
+    public static final byte[] getBytesFromBuffer(ByteBuffer buffer, int len)
     {
         final int start = buffer.position();
         final byte[] bytes = new byte[len];
@@ -105,7 +105,7 @@ public abstract class ByteBufferUtils
      * 
      * @return the same buffer if not extended, a new buffer if extended
      */
-    public static ByteBuffer putChar(char c, ByteBuffer buffer)
+    public static final ByteBuffer putChar(char c, ByteBuffer buffer)
     {
         ByteBuffer localBuf = buffer;
         if (capacityRemaining(buffer) < 2)
@@ -119,7 +119,7 @@ public abstract class ByteBufferUtils
     /**
      * @see #putChar(char, ByteBuffer)
      */
-    public static ByteBuffer put(byte b, ByteBuffer buffer)
+    public static final ByteBuffer put(byte b, ByteBuffer buffer)
     {
         ByteBuffer localBuf = buffer;
         if (capacityRemaining(buffer) < 1)
@@ -135,7 +135,7 @@ public abstract class ByteBufferUtils
      * 
      * @return the same buffer if not extended, a new buffer if extended
      */
-    public static ByteBuffer putInt(int i, ByteBuffer buffer)
+    public static final ByteBuffer putInt(int i, ByteBuffer buffer)
     {
         ByteBuffer localBuf = buffer;
         if (capacityRemaining(buffer) < 4)
@@ -149,7 +149,7 @@ public abstract class ByteBufferUtils
     /**
      * @see #putChar(char, ByteBuffer)
      */
-    public static ByteBuffer put(byte[] b, ByteBuffer buffer)
+    public static final ByteBuffer put(byte[] b, ByteBuffer buffer)
     {
         ByteBuffer localBuf = buffer;
         if (capacityRemaining(buffer) < b.length)

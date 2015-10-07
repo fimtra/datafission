@@ -16,11 +16,11 @@
 package com.fimtra.datafission.core;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
@@ -34,6 +34,7 @@ import com.fimtra.channel.IEndPointService;
 import com.fimtra.channel.IReceiver;
 import com.fimtra.channel.ITransportChannel;
 import com.fimtra.datafission.DataFissionProperties;
+import com.fimtra.datafission.DataFissionProperties.Values;
 import com.fimtra.datafission.ICodec;
 import com.fimtra.datafission.ICodec.CommandEnum;
 import com.fimtra.datafission.IObserverContext.ISystemRecordNames;
@@ -42,7 +43,6 @@ import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordChange;
 import com.fimtra.datafission.IRecordListener;
 import com.fimtra.datafission.IValue;
-import com.fimtra.datafission.field.DoubleValue;
 import com.fimtra.datafission.field.LongValue;
 import com.fimtra.datafission.field.TextValue;
 import com.fimtra.thimble.ISequentialRunnable;
@@ -76,6 +76,32 @@ public class Publisher
      * {@link ISystemRecordNames#CONTEXT_STATUS}
      */
     public static final String ATTR_DELIM = ",";
+
+    final static char[][] IGNORE_RX_COMMANDS_PREFIX;
+
+    static
+    {
+        final String[] stringPrefixes =
+            Values.IGNORE_LOGGING_RX_COMMANDS_WITH_PREFIX.toArray(new String[Values.IGNORE_LOGGING_RX_COMMANDS_WITH_PREFIX.size()]);
+        IGNORE_RX_COMMANDS_PREFIX = new char[stringPrefixes.length][];
+        for (int i = 0; i < stringPrefixes.length; i++)
+        {
+            String prefix = stringPrefixes[i];
+            IGNORE_RX_COMMANDS_PREFIX[i] = prefix.toCharArray();
+        }
+    }
+
+    static boolean canLog(char[] decodedMessage)
+    {
+        for (int i = 0; i < IGNORE_RX_COMMANDS_PREFIX.length; i++)
+        {
+            if (StringUtils.startsWith(IGNORE_RX_COMMANDS_PREFIX[i], decodedMessage))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * @return the field name for the transmission statistics for a connection to a single
@@ -284,13 +310,33 @@ public class Publisher
         volatile long messagesPublished;
         volatile long bytesPublished;
         String identity;
+        volatile boolean active;
 
         ProxyContextPublisher(ITransportChannel client, ICodec codec)
         {
+            this.active = true;
             this.codec = codec;
             this.start = System.currentTimeMillis();
             this.client = client;
+
+            // add the connection record static parts
+            final Map<String, IValue> submapConnections =
+                Publisher.this.connectionsRecord.getOrCreateSubMap(getTransmissionStatisticsFieldName(client));
+            final EndPointAddress endPointAddress = Publisher.this.server.getEndPointAddress();
+            final String clientSocket = client.getEndPointDescription();
+            submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_ID,
+                new TextValue(Publisher.this.context.getName()));
+            submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_NODE,
+                new TextValue(endPointAddress.getNode()));
+            submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_PORT,
+                LongValue.valueOf(endPointAddress.getPort()));
+            submapConnections.put(IContextConnectionsRecordFields.PROXY_ENDPOINT, new TextValue(clientSocket));
+            submapConnections.put(IContextConnectionsRecordFields.PROTOCOL, new TextValue(
+                this.codec.getClass().getSimpleName()));
+
             scheduleStatsUpdateTask();
+
+            Log.log(this, "Constructed for ", ObjectUtils.safeToString(client));
         }
 
         void scheduleStatsUpdateTask()
@@ -313,12 +359,10 @@ public class Publisher
                     final double perMin = 60000d / (Publisher.this.contextConnectionsRecordPublishPeriodMillis / 2);
                     submapConnections.put(
                         IContextConnectionsRecordFields.MSGS_PER_MIN,
-                        DoubleValue.valueOf((ProxyContextPublisher.this.messagesPublished - this.lastMessagesPublished)
-                            * perMin));
+                        LongValue.valueOf((long) ((ProxyContextPublisher.this.messagesPublished - this.lastMessagesPublished) * perMin)));
                     submapConnections.put(
                         IContextConnectionsRecordFields.KB_PER_MIN,
-                        DoubleValue.valueOf(((ProxyContextPublisher.this.bytesPublished - this.lastBytesPublished) / 1024)
-                            * perMin));
+                        LongValue.valueOf((long) (((ProxyContextPublisher.this.bytesPublished - this.lastBytesPublished) / 1024) * perMin)));
 
                     submapConnections.put(IContextConnectionsRecordFields.MESSAGE_COUNT,
                         LongValue.valueOf(ProxyContextPublisher.this.messagesPublished));
@@ -332,7 +376,7 @@ public class Publisher
                     this.lastMessagesPublished = ProxyContextPublisher.this.messagesPublished;
                     this.lastBytesPublished = ProxyContextPublisher.this.bytesPublished;
 
-                    if (Publisher.this.active)
+                    if (ProxyContextPublisher.this.active)
                     {
                         ProxyContextPublisher.this.statsUpdateTask =
                             Publisher.this.context.getUtilityExecutor().schedule(this,
@@ -382,11 +426,13 @@ public class Publisher
 
         void destroy()
         {
+            this.active = false;
             this.statsUpdateTask.cancel(false);
             for (String name : this.subscriptions)
             {
                 unsubscribe(name);
             }
+            Log.log(this, "Destroyed");
         }
 
         void setProxyContextIdentity(String identity)
@@ -439,7 +485,6 @@ public class Publisher
     final IEndPointService server;
     final IRecord connectionsRecord;
     final ProxyContextMultiplexer multiplexer;
-    volatile boolean active;
     volatile long contextConnectionsRecordPublishPeriodMillis = 10000;
     ScheduledFuture contextConnectionsRecordPublishTask;
     volatile long messagesPublished;
@@ -463,8 +508,7 @@ public class Publisher
         super();
         this.context = context;
         this.lock = new ReentrantLock();
-        this.proxyContextPublishers =
-            Collections.synchronizedMap(new HashMap<ITransportChannel, Publisher.ProxyContextPublisher>());
+        this.proxyContextPublishers = new ConcurrentHashMap<ITransportChannel, Publisher.ProxyContextPublisher>();
         this.connectionsRecord = Context.getRecordInternal(this.context, ISystemRecordNames.CONTEXT_CONNECTIONS);
 
         // prepare to periodically publish status changes
@@ -478,20 +522,9 @@ public class Publisher
                     @Override
                     public void onChannelConnected(ITransportChannel channel)
                     {
-                        final Map<String, IValue> submapConnections =
-                            Publisher.this.connectionsRecord.getOrCreateSubMap(getTransmissionStatisticsFieldName(channel));
-                        final EndPointAddress endPointAddress = Publisher.this.server.getEndPointAddress();
-                        final String clientSocket = channel.getEndPointDescription();
-                        submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_ID, new TextValue(
-                            Publisher.this.context.getName()));
-                        submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_NODE, new TextValue(
-                            endPointAddress.getNode()));
-                        submapConnections.put(IContextConnectionsRecordFields.PUBLISHER_PORT,
-                            LongValue.valueOf(endPointAddress.getPort()));
-                        submapConnections.put(IContextConnectionsRecordFields.PROXY_ENDPOINT, new TextValue(
-                            clientSocket));
-                        submapConnections.put(IContextConnectionsRecordFields.PROTOCOL, new TextValue(
-                            getProxyContextPublisher(channel).codec.getClass().getSimpleName()));
+                        // construct the ProxyContextPublisher
+                        Publisher.this.proxyContextPublishers.put(channel, new ProxyContextPublisher(channel,
+                            Publisher.this.mainCodec.newInstance()));
                     }
 
                     @Override
@@ -509,15 +542,18 @@ public class Publisher
                                 final int maxLogLength = 128;
                                 if (decodedMessage instanceof char[])
                                 {
-                                    if (((char[]) decodedMessage).length < maxLogLength)
+                                    if (canLog((char[]) decodedMessage))
                                     {
-                                        Log.log(Publisher.class, "(<-) '", new String((char[]) decodedMessage),
-                                            "' from ", ObjectUtils.safeToString(source));
-                                    }
-                                    else
-                                    {
-                                        Log.log(Publisher.class, "(<-) '", new String((char[]) decodedMessage, 0,
-                                            maxLogLength), "...(too long)' from ", ObjectUtils.safeToString(source));
+                                        if (((char[]) decodedMessage).length < maxLogLength)
+                                        {
+                                            Log.log(Publisher.class, "(<-) '", new String((char[]) decodedMessage),
+                                                "' from ", ObjectUtils.safeToString(source));
+                                        }
+                                        else
+                                        {
+                                            Log.log(Publisher.class, "(<-) '", new String((char[]) decodedMessage, 0,
+                                                maxLogLength), "...(too long)' from ", ObjectUtils.safeToString(source));
+                                        }
                                     }
                                 }
                                 else
@@ -563,13 +599,15 @@ public class Publisher
                     @Override
                     public void onChannelClosed(ITransportChannel channel)
                     {
-                        remove(channel);
-                        Publisher.this.connectionsRecord.removeSubMap(getTransmissionStatisticsFieldName(channel));
+                        ProxyContextPublisher clientPublisher = Publisher.this.proxyContextPublishers.remove(channel);
+                        if (clientPublisher != null)
+                        {
+                            clientPublisher.destroy();
+                        }
                     }
                 });
 
         this.multiplexer = new ProxyContextMultiplexer(this.server);
-        this.active = true;
     }
 
     public long getContextConnectionsRecordPublishPeriodMillis()
@@ -599,6 +637,19 @@ public class Publisher
                     {
                         if (this.publishAtomicChange.getCount() == 0)
                         {
+                            // check each connection is still active - remove if not
+                            final Set<String> connectionIds =
+                                new HashSet<String>(Publisher.this.connectionsRecord.getSubMapKeys());
+                            final Set<ITransportChannel> channels = Publisher.this.proxyContextPublishers.keySet();
+                            for (ITransportChannel channel : channels)
+                            {
+                                connectionIds.remove(getTransmissionStatisticsFieldName(channel));
+                            }
+                            for (String connectionId : connectionIds)
+                            {
+                                Publisher.this.connectionsRecord.removeSubMap(connectionId);
+                            }
+
                             this.publishAtomicChange =
                                 Publisher.this.context.publishAtomicChange(ISystemRecordNames.CONTEXT_CONNECTIONS);
                         }
@@ -623,16 +674,12 @@ public class Publisher
 
     public void destroy()
     {
-        this.active = false;
-        final HashSet<ITransportChannel> publishers;
-        synchronized (this.proxyContextPublishers)
+        for (ProxyContextPublisher proxyContextPublisher : this.proxyContextPublishers.values())
         {
-            publishers = new HashSet<ITransportChannel>(this.proxyContextPublishers.keySet());
+            proxyContextPublisher.destroy();
         }
-        for (ITransportChannel channel : publishers)
-        {
-            remove(channel);
-        }
+        this.proxyContextPublishers.clear();
+
         this.server.destroy();
         this.contextConnectionsRecordPublishTask.cancel(true);
     }
@@ -739,25 +786,14 @@ public class Publisher
 
     ProxyContextPublisher getProxyContextPublisher(ITransportChannel client)
     {
-        synchronized (this.proxyContextPublishers)
+        final ProxyContextPublisher proxyContextPublisher = this.proxyContextPublishers.get(client);
+        if (proxyContextPublisher == null)
         {
-            ProxyContextPublisher proxyContextPublisher = this.proxyContextPublishers.get(client);
-            if (proxyContextPublisher == null)
-            {
-                proxyContextPublisher = new ProxyContextPublisher(client, this.mainCodec.newInstance());
-                this.proxyContextPublishers.put(client, proxyContextPublisher);
-            }
-            return proxyContextPublisher;
+            // ProxyContextPublisher only constructed on channel connection!
+            throw new NullPointerException("No ProxyContextPublisher for " + ObjectUtils.safeToString(client)
+                + ", is the channel closed?");
         }
-    }
-
-    void remove(ITransportChannel client)
-    {
-        ProxyContextPublisher clientPublisher = this.proxyContextPublishers.remove(client);
-        if (clientPublisher != null)
-        {
-            clientPublisher.destroy();
-        }
+        return proxyContextPublisher;
     }
 
     /**

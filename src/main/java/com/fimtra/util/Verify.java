@@ -34,7 +34,7 @@ public abstract class Verify {
 	 * @throws IllegalArgumentException
 	 *             is validation fails
 	 */
-	public static void notEmpty(String string, String msg) {
+	public static final void notEmpty(String string, String msg) {
 		if (string == null || string.isEmpty()) {
 			throw new IllegalArgumentException(msg);
 		}
@@ -50,7 +50,7 @@ public abstract class Verify {
 	 * @throws IllegalArgumentException
 	 *             is validation fails
 	 */
-	public static void isTrue(boolean condition, String msg) {
+	public static final void isTrue(boolean condition, String msg) {
 		if (condition == false) {
 			throw new IllegalArgumentException(msg);
 		}
@@ -64,7 +64,7 @@ public abstract class Verify {
 	 * @throws IllegalArgumentException
 	 *             is validation fails
 	 */
-	public static void notNull(Object obj, String msg) {
+	public static final void notNull(Object obj, String msg) {
 		if (!is.notNull(obj)) {
 			throw new IllegalArgumentException(msg);
 		}

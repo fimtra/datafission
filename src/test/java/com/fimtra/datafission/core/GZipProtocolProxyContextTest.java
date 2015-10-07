@@ -17,7 +17,6 @@ package com.fimtra.datafission.core;
 
 import com.fimtra.datafission.core.GZipProtocolCodec;
 import com.fimtra.datafission.core.StringProtocolCodec;
-import com.fimtra.tcpchannel.TcpChannelUtils;
 
 /**
  * Tests using the {@link GZipProtocolCodec}
@@ -33,7 +32,9 @@ public class GZipProtocolProxyContextTest extends ProxyContextTest
     @Override
     int getNextFreePort()
     {
-        return TcpChannelUtils.getNextFreeTcpServerPort(null, START_PORT++, END_PORT++);
+        return START_PORT++;
+        // port scanning disabled to speed up tests
+        // return TcpChannelUtils.getNextFreeTcpServerPort(null, START_PORT++, END_PORT++);
     }
 
     @Override

@@ -15,6 +15,7 @@
  */
 package com.fimtra.datafission.field;
 
+import com.fimtra.datafission.IValue;
 import com.fimtra.util.is;
 
 /**
@@ -47,6 +48,23 @@ public final class TextValue extends AbstractValue
         return new TextValue(value);
     }
 
+    /**
+     * Get a String from the passed in IValue, returning the defaultValue if the IValue is
+     * <code>null</code>.
+     * <p>
+     * {@link DoubleValue}, {@link LongValue} and {@link BlobValue} can be converted to String.
+     * 
+     * @param target
+     *            the IValue to extract a String from
+     * @param defaultValue
+     *            the value to return if the target argument is <code>null</code>
+     * @return the String value of the IValue or the defaultValue if the IValue is <code>null</code>
+     */
+    public static String get(IValue target, String defaultValue)
+    {
+        return target == null ? defaultValue : target.textValue();
+    }
+    
     /** Initialises the string value to "null". */
     TextValue()
     {

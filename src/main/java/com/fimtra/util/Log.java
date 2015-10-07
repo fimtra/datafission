@@ -21,11 +21,10 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import com.fimtra.thimble.ThimbleExecutor;
 
 /**
  * A simple logger that writes to a file and to <code>System.err</code>. Uses a
@@ -42,14 +41,14 @@ public abstract class Log
     private static final boolean LOG_TO_STDERR = UtilProperties.Values.LOG_TO_STDERR;
     private static final String TAB = "|";
     private static final FastDateFormat fastDateFormat = new FastDateFormat();
-    private static final ExecutorService FILE_APPENDER_EXECUTOR =
-        ThreadUtils.newSingleThreadExecutorService("LogAsyncFileAppender");
+    private static final ThimbleExecutor FILE_APPENDER_EXECUTOR = new ThimbleExecutor("LogAsyncFileAppender", 1);
     private static final Lock lock = new ReentrantLock();
     private static PrintStream consoleStream = System.err;
 
     static final Queue<String> LOG_MESSAGE_QUEUE = new ConcurrentLinkedQueue<String>();
     static final CharSequence LINE_SEPARATOR = SystemUtils.lineSeparator();
     static final RollingFileAppender FILE_APPENDER;
+    private static boolean exceptionEncountered;
 
     static
     {
@@ -60,15 +59,7 @@ public abstract class Log
             public void run()
             {
                 System.err.println("Shutting down logging...");
-                FILE_APPENDER_EXECUTOR.shutdown();
-                try
-                {
-                    FILE_APPENDER_EXECUTOR.awaitTermination(5, TimeUnit.SECONDS);
-                }
-                catch (InterruptedException e)
-                {
-                    e.printStackTrace();
-                }
+                FILE_APPENDER_EXECUTOR.destroy();
                 flushMessages();
                 try
                 {
@@ -112,7 +103,7 @@ public abstract class Log
      * @param stream
      *            the console stream to use
      */
-    public static void setConsoleStream(PrintStream stream)
+    public static final void setConsoleStream(PrintStream stream)
     {
         lock.lock();
         try
@@ -125,7 +116,7 @@ public abstract class Log
         }
     }
 
-    public static void log(Object source, String... messages)
+    public static final void log(Object source, String... messages)
     {
         lock.lock();
         try
@@ -138,7 +129,7 @@ public abstract class Log
         }
     }
 
-    public static void log(Object source, String message1, String message2, String message3, String message4)
+    public static final void log(Object source, String message1, String message2, String message3, String message4)
     {
         lock.lock();
         try
@@ -151,7 +142,7 @@ public abstract class Log
         }
     }
 
-    public static void log(Object source, String message1, String message2, String message3)
+    public static final void log(Object source, String message1, String message2, String message3)
     {
         lock.lock();
         try
@@ -164,7 +155,7 @@ public abstract class Log
         }
     }
 
-    public static void log(Object source, String message1, String message2)
+    public static final void log(Object source, String message1, String message2)
     {
         lock.lock();
         try
@@ -177,7 +168,7 @@ public abstract class Log
         }
     }
 
-    public static void log(Object source, String message)
+    public static final void log(Object source, String message)
     {
         lock.lock();
         try
@@ -190,7 +181,7 @@ public abstract class Log
         }
     }
 
-    public static void log(Object source, String message, Throwable t)
+    public static final void log(Object source, String message, Throwable t)
     {
         lock.lock();
         try
@@ -278,21 +269,14 @@ public abstract class Log
     private static void print(final String logMessageWithLineSeparator)
     {
         LOG_MESSAGE_QUEUE.add(logMessageWithLineSeparator);
-        try
+        FILE_APPENDER_EXECUTOR.execute(new Runnable()
         {
-            FILE_APPENDER_EXECUTOR.execute(new Runnable()
+            @Override
+            public void run()
             {
-                @Override
-                public void run()
-                {
-                    flushMessages();
-                }
-            });
-        }
-        catch (RejectedExecutionException e)
-        {
-            // REALLY don't care about these!
-        }
+                flushMessages();
+            }
+        });
         if (LOG_TO_STDERR)
         {
             consoleStream.print(logMessageWithLineSeparator);
@@ -302,15 +286,15 @@ public abstract class Log
     /**
      * Create a banner message
      */
-    public static void banner(Object source, String message)
+    public static final void banner(Object source, String message)
     {
         // note: use "\n" to cover unix "\n" and windows "\r\n"
         final String[] elements = message.split("\n");
         int len = elements[0].length();
         int i = 0;
-        for(i = 0; i < elements.length; i++)
+        for (i = 0; i < elements.length; i++)
         {
-            if(len < elements[i].length())
+            if (len < elements[i].length())
             {
                 len = elements[i].length();
             }
@@ -330,25 +314,55 @@ public abstract class Log
         final int size = LOG_MESSAGE_QUEUE.size();
         if (size > 0)
         {
-            for (int i = 0; i < size; i++)
+            int i = 0;
+            if (exceptionEncountered)
             {
+                for (; i < size; i++)
+                {
+                    System.err.append(LOG_MESSAGE_QUEUE.poll());
+                }
+            }
+            else
+            {
+                for (; i < size; i++)
+                {
+                    try
+                    {
+                        FILE_APPENDER.append(LOG_MESSAGE_QUEUE.poll());
+                    }
+                    catch (IOException e)
+                    {
+                        panic(e);
+                        // print the remainder
+                        for (i++; i < size; i++)
+                        {
+                            System.err.append(LOG_MESSAGE_QUEUE.poll());
+                        }
+                        return;
+                    }
+                }
                 try
                 {
-                    FILE_APPENDER.append(LOG_MESSAGE_QUEUE.poll());
+                    FILE_APPENDER.flush();
                 }
                 catch (IOException e)
                 {
-                    e.printStackTrace();
+                    panic(e);
                 }
             }
-            try
+        }
+    }
+
+    private static void panic(IOException e)
+    {
+        if (!exceptionEncountered)
+        {
+            synchronized (System.err)
             {
-                FILE_APPENDER.flush();
-            }
-            catch (IOException e)
-            {
+                System.err.println("ALERT! LOG MESSAGE(S) LOST! Log output switching to stderr. See exception below.");
                 e.printStackTrace();
             }
+            exceptionEncountered = true;
         }
     }
 }

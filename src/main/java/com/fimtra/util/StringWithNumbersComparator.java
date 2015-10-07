@@ -44,6 +44,25 @@ public final class StringWithNumbersComparator implements Comparator<String>
     @Override
     public int compare(String o1, String o2)
     {
+        if (o1 == null)
+        {
+            if (o2 == null)
+            {
+                return 0;
+            }
+            else
+            {
+                return -1;
+            }
+        }
+        else
+        {
+            if (o2 == null)
+            {
+                return 1;
+            }
+        }
+
         if (o1.length() == o2.length())
         {
             return o1.compareTo(o2);
@@ -67,14 +86,16 @@ public final class StringWithNumbersComparator implements Comparator<String>
                     }
                     return val;
                 }
+                else
+                {
+                    // check o1=10XYZ vs o2=1XYZ
+                    if (Character.isDigit(o1.charAt(i + 1)))
+                    {
+                        return 1;
+                    }
+                }
             }
-            // check for o2=XYZ_1 vs o1=XYZ_10
-            if (Character.isDigit(o1.charAt(o2Length)) && Character.isDigit(o1.charAt(o2Length - 1))
-                && Character.isDigit(o2.charAt(o2Length - 1)))
-            {
-                return 1;
-            }
-            return -1;
+            return 1;
         }
         else
         {
@@ -91,14 +112,16 @@ public final class StringWithNumbersComparator implements Comparator<String>
                     }
                     return val;
                 }
+                else
+                {
+                    // check o2=10XYZ vs o1=1XYZ
+                    if (Character.isDigit(o2.charAt(i + 1)))
+                    {
+                        return -1;
+                    }
+                }
             }
-            // check for o1=XYZ_1 vs o2=XYZ_10
-            if (Character.isDigit(o2.charAt(o1Length)) && Character.isDigit(o2.charAt(o1Length - 1))
-                && Character.isDigit(o1.charAt(o1Length - 1)))
-            {
-                return -1;
-            }
-            return 1;
+            return -1;
         }
     }
 }

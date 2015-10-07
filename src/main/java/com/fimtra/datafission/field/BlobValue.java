@@ -194,6 +194,22 @@ public final class BlobValue extends AbstractValue
         return new BlobValue(value);
     }
 
+    /**
+     * Get a byte[] from the passed in IValue, returning the defaultValue if the IValue is
+     * <code>null</code> or not a BlobValue
+     * 
+     * @param target
+     *            the IValue to extract a byte[] from
+     * @param defaultValue
+     *            the default value
+     * @return the byte[] value of the IValue or the defaultValue if the IValue is <code>null</code>
+     *         or not a BlobValue
+     */
+    public static byte[] get(IValue target, byte[] defaultValue)
+    {
+        return target == null || !(target instanceof BlobValue) ? defaultValue : target.byteValue();
+    }
+    
     byte[] value;
 
     /**

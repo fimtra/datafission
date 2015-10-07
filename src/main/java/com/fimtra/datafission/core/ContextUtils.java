@@ -104,10 +104,17 @@ public class ContextUtils
         DataFissionProperties.Values.RPC_THREAD_COUNT);
 
     /**
-     * This is the default shared 'utility scheduler' that is used by all contexts.
+     * This is the default shared SINGLE-THREAD 'utility scheduler' that is used by all contexts.
      */
     final static ScheduledExecutorService UTILITY_SCHEDULER = ThreadUtils.newPermanentScheduledExecutorService(
         "fission-utility", 1);
+    
+    /**
+     * The default reconnect task scheduler used by all {@link ProxyContext} instances for reconnect
+     * tasks
+     */
+    final static ScheduledExecutorService RECONNECT_TASKS = ThreadUtils.newPermanentScheduledExecutorService(
+        "fission-reconnect", DataFissionProperties.Values.RECONNECT_THREAD_COUNT);
 
     static Map<Object, TaskStatistics> coreSequentialStats;
     static RollingFileAppender statisticsLog = RollingFileAppender.createStandardRollingFileAppender("Qstats",
@@ -130,6 +137,7 @@ public class ContextUtils
             @Override
             public void run()
             {
+                // todo log ALL ThimbleExecutors?
                 coreSequentialStats = CORE_EXECUTOR.getSequentialTaskStatistics();
                 StringBuilder sb = new StringBuilder(1024);
                 sb.append(this.fdf.yyyyMMddHHmmssSSS(System.currentTimeMillis())).append(

@@ -17,6 +17,7 @@ package com.fimtra.datafission.field;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
@@ -182,5 +183,15 @@ public class TextValueTest
         assertSame(TextValue.NULL, textValue.textValue());
         assertEquals(Double.NaN, textValue.doubleValue(), 0.00001);
         assertEquals(0, textValue.longValue());
+    }
+    
+    @Test
+    public void testGet()
+    {
+        assertNull(null, TextValue.get(null, null));
+        assertEquals("null", TextValue.get(null, "null"));
+        assertEquals("1", TextValue.get(LongValue.valueOf(1), null));
+        assertEquals("1.0", TextValue.get(DoubleValue.valueOf(1), null));
+        assertEquals("1", TextValue.get(TextValue.valueOf("1"), null));
     }
 }

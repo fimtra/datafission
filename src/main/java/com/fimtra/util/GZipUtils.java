@@ -57,7 +57,7 @@ public abstract class GZipUtils
      * 
      * @return the compressed byte[], <code>null</code> if there was a problem
      */
-    public static byte[] compress(byte[] uncompressedData)
+    public static final byte[] compress(byte[] uncompressedData)
     {
         try
         {
@@ -84,7 +84,7 @@ public abstract class GZipUtils
      * @see GZIPInputStream
      * @return the uncompressed data, <code>null</code> if there was a problem
      */
-    public static byte[] uncompress(byte[] compressedData)
+    public static final byte[] uncompress(byte[] compressedData)
     {
         try
         {

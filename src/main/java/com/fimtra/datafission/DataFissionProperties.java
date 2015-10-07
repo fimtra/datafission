@@ -15,10 +15,13 @@
  */
 package com.fimtra.datafission;
 
+import java.util.Set;
+
 import com.fimtra.datafission.core.Context;
 import com.fimtra.datafission.core.ProxyContext;
 import com.fimtra.datafission.core.Publisher;
 import com.fimtra.thimble.ThimbleExecutor;
+import com.fimtra.util.CollectionUtils;
 
 /**
  * Defines the properties and property keys used by DataFission
@@ -103,6 +106,21 @@ public abstract class DataFissionProperties
          * E.g. <code>-DdataFission.slowTaskThresholdNanos=50000000</code>
          */
         String SLOW_TASK_THRESHOLD_NANOS = BASE + "slowTaskThresholdNanos";
+
+        /**
+         * The system property name to define the list of comma-separated string prefixes that
+         * should be ignored for logging of received commands. <b>These are NOT regular
+         * expressions.</b><br>
+         * E.g. <code>-DdataFission.ignoreLoggingRxCommandsWithPrefix=rpc|xyz,</code>
+         */
+        String IGNORE_LOGGING_RX_COMMANDS_WITH_PREFIX = BASE + "ignoreLoggingRxCommandsWithPrefix";
+
+        /**
+         * The system property name to define the number of threads assigned to the runtime-wide
+         * reconnect task scheduler used by all {@link ProxyContext} instances.<br>
+         * E.g. <code>-DdataFission.reconnectThreadCount=2</code>
+         */
+        String RECONNECT_THREAD_COUNT = BASE + "reconnectThreadCount";
     }
 
     /**
@@ -200,7 +218,25 @@ public abstract class DataFissionProperties
          */
         long SLOW_TASK_THRESHOLD_NANOS =
             Long.parseLong(System.getProperty(Names.SLOW_TASK_THRESHOLD_NANOS, "50000000"));
+        /**
+         * The set of prefixes identifying RX commands that are not logged.
+         * <p>
+         * Default is nothing (log all)
+         * 
+         * @see Names#IGNORE_LOGGING_RX_COMMANDS_WITH_PREFIX
+         */
+        Set<String> IGNORE_LOGGING_RX_COMMANDS_WITH_PREFIX = CollectionUtils.newSetFromString(
+            System.getProperty(Names.IGNORE_LOGGING_RX_COMMANDS_WITH_PREFIX), ",");
 
+        /**
+         * The number of threads used in the shared reconnect task scheduler used by all DataFission
+         * {@link ProxyContext} instances in the runtime.
+         * <p>
+         * Default is 2.
+         * 
+         * @see Names#RECONNECT_THREAD_COUNT
+         */
+        int RECONNECT_THREAD_COUNT = Integer.parseInt(System.getProperty(Names.RECONNECT_THREAD_COUNT, "2"));
     }
 
     private DataFissionProperties()

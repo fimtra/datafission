@@ -64,7 +64,6 @@ import com.fimtra.util.Log;
 import com.fimtra.util.ObjectUtils;
 import com.fimtra.util.StringUtils;
 import com.fimtra.util.SubscriptionManager;
-import com.fimtra.util.ThreadUtils;
 
 /**
  * A proxy context allows a local runtime to observe records from a single {@link Context} in a
@@ -965,7 +964,7 @@ public final class ProxyContext implements IObserverContext
                 try
                 {
                     final String name = substituteLocalNameWithRemoteName(changeName);
-                    
+
                     final boolean recordIsSubscribed =
                         ProxyContext.this.context.recordObservers.getSubscribersFor(name).length > 0;
                     if (!recordIsSubscribed)
@@ -973,11 +972,6 @@ public final class ProxyContext implements IObserverContext
                         Log.log(ProxyContext.this, "Received record but no subscription exists - ignoring ",
                             ObjectUtils.safeToString(changeToApply));
                         return;
-                    }
-
-                    if (ProxyContext.this.remoteConnectionStatusRecord.put(changeName, RECORD_CONNECTED) != RECORD_CONNECTED)
-                    {
-                        ProxyContext.this.context.publishAtomicChange(RECORD_CONNECTION_STATUS_NAME);
                     }
 
                     IRecord record = ProxyContext.this.context.getRecord(name);
@@ -1003,6 +997,12 @@ public final class ProxyContext implements IObserverContext
                         switch(ProxyContext.this.imageDeltaProcessor.processRxChange(changeToApply, name, record))
                         {
                             case ImageDeltaChangeProcessor.PUBLISH:
+
+                                if (ProxyContext.this.remoteConnectionStatusRecord.put(changeName, RECORD_CONNECTED) != RECORD_CONNECTED)
+                                {
+                                    ProxyContext.this.context.publishAtomicChange(RECORD_CONNECTION_STATUS_NAME);
+                                }
+
                                 // note: use the record.getSequence() as this will be the DELTA
                                 // sequence if an image was received and then cached deltas applied
                                 // on top of it
@@ -1180,19 +1180,12 @@ public final class ProxyContext implements IObserverContext
             Log.log(this, "Resubscribing in ", Long.toString(this.reconnectPeriodMillis), "ms ",
                 ObjectUtils.safeToString(this));
 
-            this.reconnectTask = getUtilityExecutor().schedule(new Runnable()
+            this.reconnectTask = ContextUtils.RECONNECT_TASKS.schedule(new Runnable()
             {
                 @Override
                 public void run()
                 {
-                    ThreadUtils.newDaemonThread(new Runnable()
-                    {
-                        @Override
-                        public void run()
-                        {
-                            reconnect();
-                        }
-                    }, "reconnect-proxy-task").start();
+                    reconnect();
                 }
             }, this.reconnectPeriodMillis, TimeUnit.MILLISECONDS);
         }
@@ -1201,7 +1194,7 @@ public final class ProxyContext implements IObserverContext
             this.lock.unlock();
         }
     }
-
+    
     /**
      * Updates the connection status of all subscribed records and the ContextStatus record.
      */

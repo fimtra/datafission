@@ -25,11 +25,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.fimtra.datafission.IRecord;
 import com.fimtra.datafission.IRecordChange;
 import com.fimtra.datafission.IValue;
-import com.fimtra.util.Locks;
 import com.fimtra.util.is;
 
 /**
@@ -132,6 +132,8 @@ public final class AtomicChange implements IRecordChange
     Map<String, IValue> removedEntries;
     Map<String, AtomicChange> subMapAtomicChanges;
 
+    final Lock lock;
+
     /**
      * Construct the atomic change to represent the record.
      * <p>
@@ -157,6 +159,8 @@ public final class AtomicChange implements IRecordChange
         this.putEntries = putEntries;
         this.overwrittenEntries = overwrittenEntries;
         this.removedEntries = removedEntries;
+        
+        this.lock = new ReentrantLock();
     }
 
     AtomicChange(String name)
@@ -366,7 +370,7 @@ public final class AtomicChange implements IRecordChange
 
     Lock getLock()
     {
-        return Locks.getRuntimeLock(this.name);
+        return this.lock;
     }
 
     void mergeEntryUpdatedChange(String key, IValue current, IValue previous)

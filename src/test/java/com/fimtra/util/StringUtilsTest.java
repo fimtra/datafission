@@ -74,4 +74,13 @@ public class StringUtilsTest {
 	    strings = null;
 	    assertEquals(strings, StringUtils.split(StringUtils.join(strings, ','), ','));
 	}
+	
+	@Test
+	public void testStartsWith()
+	{
+	    assertFalse(StringUtils.startsWith(new char[] {}, "string".toCharArray()));
+	    assertFalse(StringUtils.startsWith(new char[] {'s','t','r'}, "st".toCharArray()));
+	    assertTrue(StringUtils.startsWith(new char[] {'s','t','r'}, "str".toCharArray()));
+	    assertTrue(StringUtils.startsWith(new char[] {'s','t','r'}, "string".toCharArray()));
+	}
 }

@@ -37,7 +37,7 @@ public abstract class ClassUtils {
     /**
      * Filter keys for getting the Fimtra version.
      */
-    public static List<String> fimtraVersionKeys = Arrays.asList("Version", "Built-By");
+    public static final List<String> fimtraVersionKeys = Arrays.asList("Version", "Built-By");
 
     private ClassUtils() {
     }
@@ -46,7 +46,7 @@ public abstract class ClassUtils {
      * Gets filtered manifest information for the clazz. Only results with the filtered keys will be
      * returned.
      */
-    public static String getFilteredManifestInfo(Class<?> clazz, Collection<String> filterKeys) {
+    public static final String getFilteredManifestInfo(Class<?> clazz, Collection<String> filterKeys) {
         URL url = clazz.getClassLoader().getResource(JarFile.MANIFEST_NAME);
         return getManifestEntriesAsString(url, filterKeys);
     }
@@ -54,7 +54,7 @@ public abstract class ClassUtils {
     /**
      * Gets all the manifest information for the clazz.
      */
-    public static String getManifestInfo(Class<?> clazz) {
+    public static final String getManifestInfo(Class<?> clazz) {
         return getFilteredManifestInfo(clazz, null);
     }
 
@@ -65,7 +65,7 @@ public abstract class ClassUtils {
      * 
      * @return a string with the keys and values found in the manifest Url, or "" (empty string)
      */
-    public static String getManifestEntriesAsString(URL url, Collection<String> manifestKeys)
+    public static final String getManifestEntriesAsString(URL url, Collection<String> manifestKeys)
     {     
         StringBuilder manifestBuilder = new StringBuilder();
         InputStream inputStream = null;
