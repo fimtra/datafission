@@ -1,6 +1,8 @@
 #What is it?
 *Datafission is a Java framework for building real-time distributed data systems.* 
 
+***Now incorporated and maintained in the ClearConnect project (https://github.com/fimtra/clearconnect/)***
+
 ##How it works (the 20 second version)
 
 ![](https://github.com/fimtra/datafission/blob/master/docs/images/datafission%20summary.png) 
